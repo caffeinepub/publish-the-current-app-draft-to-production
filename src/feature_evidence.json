@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-publish-the-current-draft-build-to-production-no-functional-changes-requested",
-      "featureTitle": "Publish the current draft build to production (no functional changes requested).",
+      "featureId": "feature-delete-the-first-selected-element-xpath-html-1-body-1-div-1-div-1-main-1-div-1-div-1-div-1-from-the-store-page-ui-by-removing-the-corresponding-storepage-header-banner-section-so-it-no-longer-renders",
+      "featureTitle": "Delete the first selected element (XPath: /html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[1]) from the Store page UI by removing the corresponding StorePage header/banner section so it no longer renders.",
       "files": [
-        "frontend/PRODUCTION_RELEASE.md",
-        "frontend/PRODUCTION_SMOKE_CHECKLIST.md"
+        "frontend/src/pages/StorePage.tsx"
       ],
       "components": [
         "authorization@3.0.0",
@@ -21,6 +20,29 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-the-existing-stripe-setup-remains-usable-after-upgrades-by-persisting-the-stripe-configuration-across-canister-upgrades-so-visitors-users-can-complete-stripe-checkout-from-the-cart-using-the-already-configured-stripe-settings",
+      "featureTitle": "Ensure the existing Stripe setup remains usable after upgrades by persisting the Stripe configuration across canister upgrades so visitors/users can complete Stripe checkout from the cart using the already-configured Stripe settings.",
+      "files": [
+        "frontend/src/components/CartDrawer.tsx",
+        "frontend/src/hooks/useQueries.ts"
+      ],
+      "components": [
+        "authorization@3.0.0",
+        "blob-storage@4.0.0",
+        "stripe@3.0.0",
+        "http-outcalls@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
       ],
       "confidence": "high"
     }

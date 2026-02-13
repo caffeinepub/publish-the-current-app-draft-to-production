@@ -1,51 +1,54 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T02:53:10.878Z",
-  "summary": "REQ-1 asks only to publish the existing draft to production with no functional changes. The diff includes documentation/checklists related to production release, but it also modifies frontend authentication/actor behavior and React Query invalidation/refetch behavior, which are functional changes. Additionally, nothing in the diff demonstrates an actual production deployment/update of the production environment or production URL verification.",
+  "generatedAt": "2026-02-13T22:29:15.819Z",
+  "summary": "REQ-1 appears implemented by removing the Store page header/banner section. Persistence of store products and Stripe configuration across upgrades (REQ-2/REQ-3) is not clearly evidenced in the provided diff summary because the backend state declarations/upgrade hooks are truncated and no explicit stable/persistent storage for products or Stripe config is shown.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Publish the current draft build to production (no functional changes requested).",
-      "reason": "The diff does not include any production deployment/release configuration or environment update (e.g., CI/CD pipeline changes, deployment scripts, environment config) that would update production to the latest draft. It mainly adds documentation and changes frontend runtime behavior, which does not itself prove production was updated.",
+      "id": "REQ-2",
+      "requirement": "Make product storage survive canister upgrades so previously uploaded products are still returned by listProducts() after upgrade/redeploy.",
+      "reason": "The diff shows a migration wrapper and a migration State type that includes storeProducts, but the truncated backend/main.mo excerpt does not show any stable variable (or equivalent persistent state mechanism) for products, nor any explicit upgrade logic ensuring listProducts() returns prior products after upgrade.",
       "evidence": [
-        "frontend/PRODUCTION_RELEASE.md",
-        "frontend/PRODUCTION_SMOKE_CHECKLIST.md",
-        "MODIFIED FILES list contains only frontend code and a summary file; no deployment/infra files shown"
+        "backend/main.mo",
+        "backend/migration.mo"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Persist Stripe configuration across canister upgrades so isStripeConfigured() remains true after upgrade and checkout works when configured.",
+      "reason": "The diff shows a migration State type that includes stripeConfiguration and stripeSessionOwners, and frontend checks isStripeConfigured(), but the truncated backend/main.mo excerpt does not show Stripe configuration being stored in stable/persistent state and restored on upgrade.",
+      "evidence": [
+        "backend/main.mo",
+        "backend/migration.mo",
+        "frontend/src/components/CartDrawer.tsx"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Functional change: actor creation now returns an anonymous actor when not authenticated, and authenticated path calls initializeAccessControl; additionally, actor changes trigger invalidation and refetch of dependent React Query queries.",
-      "reason": "REQ-1 explicitly requests no functional changes—only publishing the current draft to production. These changes alter runtime behavior and data-fetching/refetch semantics.",
+      "description": "Added StoreBanner backend type/state and corresponding frontend React Query hooks (get/update store banner).",
+      "reason": "The BuildRequest only asked to remove the Store page header/banner UI element and to persist products/Stripe across upgrades; it did not request adding a StoreBanner feature or API.",
       "evidence": [
-        "frontend/src/hooks/useActor.ts"
+        "backend/main.mo",
+        "frontend/src/hooks/useQueries.ts"
       ]
     },
     {
-      "description": "Functional change in authentication/client configuration (Internet Identity provider logic/options adjusted).",
-      "reason": "REQ-1 requests no functional changes; modifying authentication behavior/configuration goes beyond a pure “publish” request.",
+      "description": "Added/expanded frontend hooks for Hero Settings and Page Settings APIs.",
+      "reason": "These configuration features are not part of REQ-1/REQ-2/REQ-3 and were not requested.",
       "evidence": [
-        "frontend/src/hooks/useInternetIdentity.ts"
-      ]
-    },
-    {
-      "description": "Added/introduced non-goal feature requests in project metadata (guest checkout; using ocarina images as icons/products) as pending requests.",
-      "reason": "Non-goals explicitly say not to implement new features like guest checkout or product/icon image changes as part of this request. While this is metadata (not implementation), it introduces scope not requested for this build/publish-only task.",
-      "evidence": [
-        "project_state.json"
+        "frontend/src/hooks/useQueries.ts"
       ]
     }
   ],
-  "confidence": 0.74,
+  "confidence": 0.64,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/PRODUCTION_RELEASE.md",
-    "frontend/PRODUCTION_SMOKE_CHECKLIST.md",
-    "frontend/src/hooks/useActor.ts",
-    "frontend/src/hooks/useInternetIdentity.ts",
-    "frontend/src/main.tsx",
+    "frontend/src/components/CartDrawer.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/StorePage.tsx",
     "project_state.json"
   ]
 }

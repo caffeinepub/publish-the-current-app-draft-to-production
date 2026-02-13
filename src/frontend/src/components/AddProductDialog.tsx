@@ -36,21 +36,20 @@ export default function AddProductDialog({ open, onOpenChange }: AddProductDialo
     if (files.length === 0) return;
 
     // Filter for image files only
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
-    if (imageFiles.length !== files.length) {
+    const imageFilesOnly = files.filter(file => file.type.startsWith('image/'));
+    if (imageFilesOnly.length !== files.length) {
       toast.error('Only image files are allowed');
     }
 
-    // Add new files to existing ones
-    const newFiles = [...imageFiles, ...imageFiles];
-    setImageFiles(newFiles);
+    // Add new files to existing ones (fixed: removed duplication)
+    setImageFiles(prev => [...prev, ...imageFilesOnly]);
 
     // Create previews
-    const newPreviews = imageFiles.map(file => URL.createObjectURL(file));
-    setImagePreviews([...imagePreviews, ...newPreviews]);
+    const newPreviews = imageFilesOnly.map(file => URL.createObjectURL(file));
+    setImagePreviews(prev => [...prev, ...newPreviews]);
 
     // Initialize progress for new images
-    setUploadProgress([...uploadProgress, ...imageFiles.map(() => 0)]);
+    setUploadProgress(prev => [...prev, ...imageFilesOnly.map(() => 0)]);
   };
 
   const removeImage = (index: number) => {

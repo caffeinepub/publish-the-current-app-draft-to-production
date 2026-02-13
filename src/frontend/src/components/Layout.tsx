@@ -1,29 +1,45 @@
-import { useState } from 'react';
-import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
+import { Link, useNavigate, Outlet } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useQueryClient } from '@tanstack/react-query';
-import { Music, BookOpen, Users, ShoppingBag, User, Shield, ShoppingCart } from 'lucide-react';
-import { useIsCallerAdmin, useGetCallerUserProfile } from '../hooks/useQueries';
+import { useIsCallerAdmin, useGetBalance, useGetBranding } from '../hooks/useQueries';
+import { ShoppingCart, Heart } from 'lucide-react';
 import { useCartStore } from '../lib/cartStore';
-import CartDrawer from './CartDrawer';
+import { Badge } from '@/components/ui/badge';
+import { getBuildInfo } from '../config/appBuildInfo';
+import { useEffect } from 'react';
 
 export default function Layout() {
-  const navigate = useNavigate();
-  const { pathname } = useRouterState().location;
   const { login, clear, loginStatus, identity } = useInternetIdentity();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: isAdmin } = useIsCallerAdmin();
-  const { data: userProfile } = useGetCallerUserProfile();
-  const cart = useCartStore(state => state.cart);
-  const getItemCount = useCartStore(state => state.getItemCount);
-  const [showCart, setShowCart] = useState(false);
+  const { data: balance } = useGetBalance();
+  const { data: branding } = useGetBranding();
+  const cartCount = useCartStore(state => state.getItemCount());
 
   const isAuthenticated = !!identity;
   const disabled = loginStatus === 'logging-in';
-  const tokenBalance = userProfile?.tokenBalance ? Number(userProfile.tokenBalance) : 0;
-  const cartItemCount = getItemCount();
+  const text = loginStatus === 'logging-in' ? 'Logging in...' : isAuthenticated ? 'Logout' : 'Login';
+
+  const buildInfo = getBuildInfo();
+
+  // Update favicon when branding icon changes
+  useEffect(() => {
+    if (branding?.icon) {
+      const iconUrl = branding.icon.getDirectURL();
+      
+      // Remove existing favicon links
+      const existingLinks = document.querySelectorAll("link[rel*='icon']");
+      existingLinks.forEach(link => link.remove());
+      
+      // Add new favicon link
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      link.href = iconUrl;
+      document.head.appendChild(link);
+    }
+  }, [branding?.icon]);
 
   const handleAuth = async () => {
     if (isAuthenticated) {
@@ -43,130 +59,131 @@ export default function Layout() {
     }
   };
 
-  const navItems = [
-    { path: '/', label: 'Home', icon: Music },
-    { path: '/learning', label: 'Learning', icon: BookOpen },
-    { path: '/community', label: 'Community', icon: Users },
-    { path: '/store', label: 'Store', icon: ShoppingBag },
-  ];
+  // Use branding values with fallbacks
+  const siteName = branding?.siteName || 'Ocarina Learning';
+  const logoUrl = branding?.logo?.getDirectURL() || '/assets/generated/ocarina-logo-transparent.dim_200x200.png';
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-accent/5">
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="min-h-screen flex flex-col">
+      <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-8">
-            <button
-              onClick={() => navigate({ to: '/' })}
-              className="flex items-center gap-2 font-bold text-xl hover:opacity-80 transition-opacity"
-            >
-              <img src="/assets/generated/ocarina-logo-transparent.dim_200x200.png" alt="Ocarina" className="h-10 w-10" />
-              <span className="hidden sm:inline">Ocarina Hub</span>
-            </button>
-            <nav className="hidden md:flex items-center gap-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.path;
-                return (
-                  <Button
-                    key={item.path}
-                    variant={isActive ? 'secondary' : 'ghost'}
-                    onClick={() => navigate({ to: item.path })}
-                    className="gap-2"
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Button>
-                );
-              })}
+          <div className="flex items-center gap-6">
+            <Link to="/" className="flex items-center gap-2">
+              <img 
+                src={logoUrl}
+                alt={siteName}
+                className="h-10 w-10"
+              />
+              <span className="font-bold text-xl">{siteName}</span>
+            </Link>
+            <nav className="hidden md:flex gap-6">
+              <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">
+                Home
+              </Link>
+              <Link to="/learning" className="text-sm font-medium hover:text-primary transition-colors">
+                Learning
+              </Link>
+              <Link to="/community" className="text-sm font-medium hover:text-primary transition-colors">
+                Community
+              </Link>
+              <Link to="/store" className="text-sm font-medium hover:text-primary transition-colors">
+                Store
+              </Link>
             </nav>
           </div>
-          <div className="flex items-center gap-2">
-            {isAuthenticated && userProfile && (
-              <Button 
-                variant="outline" 
-                size="sm" 
+          <div className="flex items-center gap-4">
+            {isAuthenticated && balance !== undefined && (
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => navigate({ to: '/wallet' })}
-                className="gap-2 hidden sm:flex"
+                className="gap-2"
               >
-                <img src="/assets/generated/token-coin-icon-transparent.dim_64x64.png" alt="Tokens" className="h-4 w-4" />
-                <span className="font-semibold">{tokenBalance}</span>
+                <img 
+                  src="/assets/generated/token-coin-icon-transparent.dim_64x64.png" 
+                  alt="Tokens" 
+                  className="h-4 w-4"
+                />
+                <span className="font-semibold">{balance.toString()}</span>
               </Button>
             )}
-            {isAuthenticated && cartItemCount > 0 && (
-              <Button variant="ghost" size="icon" onClick={() => setShowCart(true)} className="relative">
-                <ShoppingCart className="h-5 w-5" />
-                <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                  {cartItemCount}
+            {cartCount > 0 && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="relative"
+                onClick={() => navigate({ to: '/store' })}
+              >
+                <ShoppingCart className="h-4 w-4" />
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                >
+                  {cartCount}
                 </Badge>
               </Button>
             )}
             {isAuthenticated && (
-              <>
-                <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/profile' })}>
-                  <User className="h-5 w-5" />
-                </Button>
-                {isAdmin && (
-                  <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/admin' })}>
-                    <Shield className="h-5 w-5" />
-                  </Button>
-                )}
-              </>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate({ to: '/profile' })}
+              >
+                Profile
+              </Button>
             )}
-            <Button onClick={handleAuth} disabled={disabled} variant={isAuthenticated ? 'outline' : 'default'}>
-              {loginStatus === 'logging-in' ? 'Logging in...' : isAuthenticated ? 'Logout' : 'Login'}
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate({ to: '/admin' })}
+              >
+                Admin
+              </Button>
+            )}
+            <Button
+              onClick={handleAuth}
+              disabled={disabled}
+              size="sm"
+              variant={isAuthenticated ? 'outline' : 'default'}
+            >
+              {text}
             </Button>
           </div>
         </div>
-        <nav className="md:hidden border-t border-border/40 bg-background/95">
-          <div className="container flex items-center justify-around py-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.path;
-              return (
-                <Button
-                  key={item.path}
-                  variant={isActive ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => navigate({ to: item.path })}
-                  className="flex-col h-auto py-2 gap-1"
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="text-xs">{item.label}</span>
-                </Button>
-              );
-            })}
-          </div>
-        </nav>
       </header>
+
       <main className="flex-1">
         <Outlet />
       </main>
-      <footer className="border-t border-border/40 bg-card/50 backdrop-blur">
-        <div className="container py-8">
+
+      <footer className="border-t py-8 mt-16">
+        <div className="container">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>© 2025. Built with</span>
-              <span className="text-red-500">♥</span>
-              <span>using</span>
-              <a href="https://caffeine.ai" target="_blank" rel="noopener noreferrer" className="font-medium hover:text-foreground transition-colors">
-                caffeine.ai
-              </a>
+            <div className="flex flex-col items-center md:items-start gap-2">
+              <p className="text-sm text-muted-foreground">
+                © {new Date().getFullYear()} {siteName}. All rights reserved.
+              </p>
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                Built with <Heart className="h-3 w-3 fill-red-500 text-red-500" /> using{' '}
+                <a
+                  href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors font-medium"
+                >
+                  caffeine.ai
+                </a>
+              </p>
             </div>
-            <div className="flex gap-4 text-sm text-muted-foreground">
-              <button onClick={() => navigate({ to: '/learning' })} className="hover:text-foreground transition-colors">
-                Tutorials
-              </button>
-              <button onClick={() => navigate({ to: '/community' })} className="hover:text-foreground transition-colors">
-                Community
-              </button>
-              <button onClick={() => navigate({ to: '/store' })} className="hover:text-foreground transition-colors">
-                Shop
-              </button>
+            <div className="flex flex-col items-center md:items-end gap-2">
+              <p className="text-xs text-muted-foreground">
+                Build: {new Date(buildInfo.buildTime).toLocaleDateString()}
+              </p>
             </div>
           </div>
         </div>
       </footer>
-      <CartDrawer open={showCart} onOpenChange={setShowCart} />
     </div>
   );
 }

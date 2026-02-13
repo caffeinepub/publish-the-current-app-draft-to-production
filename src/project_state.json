@@ -1,18 +1,28 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project to sell 3D printed ocarinas, using their images as app icons and as sellable product items, with checkout that allows purchasing without login.",
-  "architectural_notes": [],
-  "known_issues": [
-    "Build/deploy automation failed to fulfill recent feature requests (prompt unable to be fulfilled)"
+  "summary": "Project to restore an ecommerce store experience: show previously uploaded products and allow visitors/users to purchase using existing Stripe setup; also delete a specific first UI element.",
+  "architectural_notes": [
+    "Use existing Stripe integration/settings already configured for payments."
   ],
-  "isFixRequest": false,
+  "known_issues": [
+    "Store is currently not showing previously uploaded products and/or purchase flow via Stripe is not working; needs restoration."
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-publish-the-current-draft-build-to-production-no-functional-changes-requested",
-      "title": "Publish the current draft build to production (no functional changes requested).",
+      "id": "feature-delete-the-first-selected-element-xpath-html-1-body-1-div-1-div-1-main-1-div-1-div-1-div-1-from-the-store-page-ui-by-removing-the-corresponding-storepage-header-banner-section-so-it-no-longer-renders",
+      "title": "Delete the first selected element (XPath: /html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[1]) from the Store page UI by removing the corresponding StorePage header/banner section so it no longer renders.",
       "reqIds": [
         "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-existing-stripe-setup-remains-usable-after-upgrades-by-persisting-the-stripe-configuration-across-canister-upgrades-so-visitors-users-can-complete-stripe-checkout-from-the-cart-using-the-already-configured-stripe-settings",
+      "title": "Ensure the existing Stripe setup remains usable after upgrades by persisting the Stripe configuration across canister upgrades so visitors/users can complete Stripe checkout from the cart using the already-configured Stripe settings.",
+      "reqIds": [
+        "REQ-3"
       ],
       "version": 1
     }
@@ -20,18 +30,32 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Use images of 3D printed ocarinas as icons and as sellable product items in the app/store",
+      "summary": "Delete the first selected UI element from the page (remove from underlying code).",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Allow users to purchase/checkout without requiring login",
+      "summary": "Restore store to display previously uploaded products/items.",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Enable purchasing from the store using the existing Stripe payment setup (incl. cart/checkout flow).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Restore the store so it displays the products/items that were previously uploaded by making product storage survive canister upgrades (i.e., store product data must persist across redeploy/upgrade).",
+      "reqIds": [
+        "REQ-2"
+      ],
       "status": "pending"
     }
   ],
-  "projectName": "Publish the current app draft to production",
+  "projectName": "Delete Store page header element and restore persistent store products + Stripe checkout",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

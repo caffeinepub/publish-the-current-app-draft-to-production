@@ -1,19 +1,18 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAddTutorial, useUploadMediaFile, useListMedia } from '../hooks/useQueries';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Difficulty, type Tutorial } from '../types';
+import type { MediaFile } from '../backend';
+import { useAddTutorial, useListMedia, useUploadMediaFile } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { toast } from 'sonner';
-import { Difficulty, type Tutorial, type MediaFile } from '../backend';
+import { Loader2, Upload } from 'lucide-react';
 import { ExternalBlob } from '../backend';
-import { Upload, Video, Loader2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
 
 interface AddTutorialDialogProps {
   open: boolean;
@@ -21,131 +20,138 @@ interface AddTutorialDialogProps {
 }
 
 export default function AddTutorialDialog({ open, onOpenChange }: AddTutorialDialogProps) {
+  const { identity } = useInternetIdentity();
+  const addTutorial = useAddTutorial();
+  const uploadMediaFile = useUploadMediaFile();
+  const { data: mediaFiles = [] } = useListMedia();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.beginner);
+  const [selectedMediaId, setSelectedMediaId] = useState<string>('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [selectedMediaFile, setSelectedMediaFile] = useState<MediaFile | null>(null);
-  const [uploadMode, setUploadMode] = useState<'existing' | 'new'>('existing');
+  const [uploadProgress, setUploadProgress] = useState<number | undefined>(undefined);
   const [isFree, setIsFree] = useState(false);
-  const [uploading, setUploading] = useState(false);
 
-  const addTutorial = useAddTutorial();
-  const uploadMedia = useUploadMediaFile();
-  const { data: mediaFiles = [] } = useListMedia();
-  const { identity } = useInternetIdentity();
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.type.startsWith('video/')) {
-        setVideoFile(file);
-      } else {
-        toast.error('Please select a video file');
-      }
-    }
-  };
+  const videoFiles = mediaFiles.filter(m => m.contentType.startsWith('video/'));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim() || !identity) {
-      toast.error('Please fill all fields');
+
+    if (!identity) {
+      toast.error('Please log in to add tutorials');
       return;
     }
 
-    if (uploadMode === 'new' && !videoFile) {
-      toast.error('Please select a video file');
+    if (!title.trim() || !description.trim()) {
+      toast.error('Please fill in all fields');
       return;
     }
 
-    if (uploadMode === 'existing' && !selectedMediaFile) {
-      toast.error('Please select a media file from the library');
-      return;
-    }
-
-    setUploading(true);
     try {
-      let mediaFile: MediaFile;
+      const principal = identity.getPrincipal();
+      let videoMedia: MediaFile;
 
-      if (uploadMode === 'new' && videoFile) {
+      if (videoFile) {
         const videoBytes = new Uint8Array(await videoFile.arrayBuffer());
-        const videoBlob = ExternalBlob.fromBytes(videoBytes);
+        const videoBlob = ExternalBlob.fromBytes(videoBytes).withUploadProgress((percentage) => {
+          setUploadProgress(percentage);
+        });
 
-        mediaFile = {
-          name: `tutorial-${Date.now()}-${videoFile.name}`,
+        videoMedia = {
+          name: `tutorial-video-${Date.now()}-${videoFile.name}`,
           blob: videoBlob,
           contentType: videoFile.type,
-          uploader: identity.getPrincipal(),
+          uploader: principal,
         };
 
-        await uploadMedia.mutateAsync(mediaFile);
-      } else if (selectedMediaFile) {
-        mediaFile = selectedMediaFile;
+        await uploadMediaFile.mutateAsync(videoMedia);
+      } else if (selectedMediaId) {
+        const selectedMedia = videoFiles.find(m => m.name === selectedMediaId);
+        if (!selectedMedia) {
+          toast.error('Selected video not found');
+          return;
+        }
+        videoMedia = selectedMedia;
       } else {
-        throw new Error('No media file selected');
+        toast.error('Please select or upload a video');
+        return;
       }
 
       const tutorial: Tutorial = {
         id: `tutorial-${Date.now()}`,
         title: title.trim(),
         description: description.trim(),
-        difficulty: difficulty,
-        video: mediaFile,
-        creator: identity.getPrincipal(),
+        difficulty,
+        video: videoMedia,
+        creator: principal,
         createdAt: BigInt(Date.now() * 1000000),
-        isFree: isFree,
+        isFree,
       };
 
       await addTutorial.mutateAsync(tutorial);
-      toast.success('Tutorial created successfully!');
+      toast.success('Tutorial added successfully');
       onOpenChange(false);
       setTitle('');
       setDescription('');
       setDifficulty(Difficulty.beginner);
+      setSelectedMediaId('');
       setVideoFile(null);
-      setSelectedMediaFile(null);
-      setUploadMode('existing');
+      setUploadProgress(undefined);
       setIsFree(false);
-    } catch (error) {
-      toast.error('Failed to create tutorial');
-      console.error(error);
-    } finally {
-      setUploading(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to add tutorial');
+      console.error('Add tutorial error:', error);
     }
   };
 
+  const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('video/')) {
+        toast.error('Please select a video file');
+        return;
+      }
+      setVideoFile(file);
+      setSelectedMediaId('');
+    }
+  };
+
+  const isUploading = uploadProgress !== undefined && uploadProgress < 100;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create Tutorial</DialogTitle>
-          <DialogDescription>Create a new learning tutorial for the community</DialogDescription>
+          <DialogTitle>Add Tutorial</DialogTitle>
+          <DialogDescription>Create a new learning tutorial</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
+            <Label htmlFor="title">Title</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Tutorial title"
+              placeholder="Enter tutorial title"
               required
             />
           </div>
+
           <div className="space-y-2">
-            <Label htmlFor="description">Description *</Label>
+            <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe what students will learn..."
+              placeholder="Enter tutorial description"
               rows={3}
               required
             />
           </div>
+
           <div className="space-y-2">
-            <Label htmlFor="difficulty">Difficulty *</Label>
-            <Select value={difficulty} onValueChange={(v) => setDifficulty(v as Difficulty)}>
+            <Label htmlFor="difficulty">Difficulty</Label>
+            <Select value={difficulty} onValueChange={(value) => setDifficulty(value as Difficulty)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -157,100 +163,80 @@ export default function AddTutorialDialog({ open, onOpenChange }: AddTutorialDia
             </Select>
           </div>
 
+          <div className="space-y-2">
+            <Label>Video</Label>
+            <div className="space-y-2">
+              {videoFiles.length > 0 && (
+                <Select value={selectedMediaId} onValueChange={setSelectedMediaId} disabled={!!videoFile}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select from library" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {videoFiles.map((video) => (
+                      <SelectItem key={video.name} value={video.name}>
+                        {video.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoFileChange}
+                  className="hidden"
+                  id="video-upload"
+                  disabled={!!selectedMediaId}
+                />
+                <Label htmlFor="video-upload" className="cursor-pointer flex-1">
+                  <Button type="button" variant="outline" className="w-full" asChild disabled={!!selectedMediaId}>
+                    <span>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {videoFile ? videoFile.name : 'Upload New Video'}
+                    </span>
+                  </Button>
+                </Label>
+                {videoFile && (
+                  <Button type="button" variant="ghost" onClick={() => setVideoFile(null)}>
+                    Clear
+                  </Button>
+                )}
+              </div>
+              {isUploading && (
+                <div className="text-sm text-muted-foreground">
+                  Uploading: {uploadProgress}%
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="flex items-center space-x-2">
             <Checkbox
               id="isFree"
               checked={isFree}
-              onCheckedChange={(checked) => setIsFree(checked === true)}
+              onCheckedChange={(checked) => setIsFree(checked as boolean)}
             />
-            <Label htmlFor="isFree" className="font-normal cursor-pointer">
-              Make this tutorial free (accessible to all users without login)
+            <Label htmlFor="isFree" className="cursor-pointer">
+              Mark as free (accessible to all users)
             </Label>
           </div>
 
-          <div className="space-y-3">
-            <Label>Video Source *</Label>
-            <RadioGroup value={uploadMode} onValueChange={(v) => setUploadMode(v as 'existing' | 'new')}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="existing" id="existing" />
-                <Label htmlFor="existing" className="font-normal cursor-pointer">
-                  Select from Media Library
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="new" id="new" />
-                <Label htmlFor="new" className="font-normal cursor-pointer">
-                  Upload New Video
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {uploadMode === 'existing' ? (
-            <div className="space-y-2">
-              <Label>Select Video from Library</Label>
-              {mediaFiles.length === 0 ? (
-                <Card>
-                  <CardContent className="py-6 text-center text-muted-foreground">
-                    <Video className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No media files available. Upload videos in the Media Library tab first.</p>
-                  </CardContent>
-                </Card>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={addTutorial.isPending || isUploading}>
+              {addTutorial.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding...
+                </>
               ) : (
-                <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-lg p-2">
-                  {mediaFiles.map((media) => (
-                    <Card
-                      key={media.name}
-                      className={`cursor-pointer transition-colors ${
-                        selectedMediaFile?.name === media.name ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
-                      }`}
-                      onClick={() => setSelectedMediaFile(media)}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-center gap-3">
-                          <Video className="h-5 w-5 text-primary flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{media.name}</p>
-                            <p className="text-xs text-muted-foreground">{media.contentType}</p>
-                          </div>
-                          {selectedMediaFile?.name === media.name && (
-                            <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                'Add Tutorial'
               )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="video">Upload Video File *</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="video"
-                  type="file"
-                  accept="video/*"
-                  onChange={handleFileChange}
-                  className="flex-1"
-                  required={uploadMode === 'new'}
-                />
-                <Upload className="h-5 w-5 text-muted-foreground" />
-              </div>
-              {videoFile && <p className="text-sm text-muted-foreground">{videoFile.name}</p>}
-            </div>
-          )}
-
-          <Button type="submit" className="w-full" disabled={uploading}>
-            {uploading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating Tutorial...
-              </>
-            ) : (
-              'Create Tutorial'
-            )}
-          </Button>
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

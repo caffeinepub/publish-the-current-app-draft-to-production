@@ -14,17 +14,18 @@ export class ExternalBlob {
     static fromBytes(blob: Uint8Array<ArrayBuffer>): ExternalBlob;
     withUploadProgress(onProgress: (percentage: number) => void): ExternalBlob;
 }
-export interface UserProfile {
-    bio: string;
-    username: string;
-    purchasedContent: Array<string>;
-    createdAt: Time;
-    role: Role;
-    aiInteractionHistory: Array<AIInteraction>;
-    uploadedContent: Array<MediaFile>;
-    tokenBalance: bigint;
-    aiAssistantEnabled: boolean;
-    transactionHistory: Array<TokenTransaction>;
+export interface Product {
+    id: string;
+    inventory: bigint;
+    name: string;
+    description: string;
+    price: bigint;
+    images: Array<MediaFile>;
+}
+export interface StoreBanner {
+    title: string;
+    bannerImage?: ExternalBlob;
+    subtitle: string;
 }
 export interface TransformationOutput {
     status: bigint;
@@ -32,76 +33,6 @@ export interface TransformationOutput {
     headers: Array<http_header>;
 }
 export type Time = bigint;
-export interface AIFeedback {
-    feedback: string;
-    videoTimestamp: bigint;
-    tutorialId: string;
-}
-export interface Tutorial {
-    id: string;
-    title: string;
-    creator: Principal;
-    video: MediaFile;
-    difficulty: Difficulty;
-    createdAt: Time;
-    description: string;
-    isFree: boolean;
-}
-export interface CommunityPost {
-    id: string;
-    media: Array<MediaFile>;
-    title: string;
-    content: string;
-    createdAt: Time;
-    author: Principal;
-    likes: bigint;
-}
-export interface OrderedProduct {
-    id: string;
-    name: string;
-    quantity: bigint;
-    price: bigint;
-}
-export interface AIResponse {
-    suggestions: Array<string>;
-    feedback: string;
-}
-export interface TransformationInput {
-    context: Uint8Array;
-    response: http_request_result;
-}
-export interface AIRequest {
-    userAnswers: Array<string>;
-    videoTimestamp: bigint;
-    tutorialId: string;
-}
-export interface AIInteraction {
-    feedback: string;
-    timestamp: Time;
-    tutorialId: string;
-}
-export interface ChatMessage {
-    isAI: boolean;
-    sender: string;
-    message: string;
-    timestamp: Time;
-}
-export type StripeSessionStatus = {
-    __kind__: "completed";
-    completed: {
-        userPrincipal?: string;
-        response: string;
-    };
-} | {
-    __kind__: "failed";
-    failed: {
-        error: string;
-    };
-};
-export interface StripeConfiguration {
-    allowedCountries: Array<string>;
-    secretKey: string;
-}
 export interface MediaFile {
     contentType: string;
     blob: ExternalBlob;
@@ -115,14 +46,6 @@ export interface TokenTransaction {
     description: string;
     timestamp: Time;
     amount: bigint;
-}
-export interface Order {
-    id: string;
-    status: OrderStatus;
-    total: bigint;
-    createdAt: Time;
-    user: Principal;
-    products: Array<OrderedProduct>;
 }
 export interface http_header {
     value: string;
@@ -140,33 +63,50 @@ export interface ShoppingItem {
     priceInCents: bigint;
     productDescription: string;
 }
-export interface StreamedContent {
-    id: string;
-    media: MediaFile;
-    title: string;
-    creator: Principal;
+export interface TransformationInput {
+    context: Uint8Array;
+    response: http_request_result;
+}
+export interface AIInteraction {
+    feedback: string;
+    timestamp: Time;
+    tutorialId: string;
+}
+export type StripeSessionStatus = {
+    __kind__: "completed";
+    completed: {
+        userPrincipal?: string;
+        response: string;
+    };
+} | {
+    __kind__: "failed";
+    failed: {
+        error: string;
+    };
+};
+export interface StripeConfiguration {
+    allowedCountries: Array<string>;
+    secretKey: string;
+}
+export interface Branding {
+    icon?: ExternalBlob;
+    logo?: ExternalBlob;
+    slogan: string;
+    siteName: string;
+}
+export interface UserProfile {
+    bio: string;
+    username: string;
+    purchasedContent: Array<string>;
     createdAt: Time;
-    category: string;
+    role: Role;
+    aiInteractionHistory: Array<AIInteraction>;
+    uploadedContent: Array<MediaFile>;
+    tokenBalance: bigint;
+    aiAssistantEnabled: boolean;
+    transactionHistory: Array<TokenTransaction>;
 }
-export interface Product {
-    id: string;
-    inventory: bigint;
-    name: string;
-    description: string;
-    price: bigint;
-    images: Array<MediaFile>;
-}
-export enum Difficulty {
-    intermediate = "intermediate",
-    beginner = "beginner",
-    advanced = "advanced"
-}
-export enum OrderStatus {
-    cancelled = "cancelled",
-    pending = "pending",
-    completed = "completed"
-}
-export enum Role {
+export enum UserRole {
     admin = "admin",
     user = "user",
     guest = "guest"
@@ -178,60 +118,27 @@ export enum Variant_earn_mint_spend_transfer {
     transfer = "transfer"
 }
 export interface backendInterface {
-    addPost(post: CommunityPost): Promise<string>;
     addProduct(product: Product): Promise<string>;
-    addStream(content: StreamedContent): Promise<string>;
-    addTutorial(tutorial: Tutorial): Promise<string>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    clearChatHistory(): Promise<void>;
-    clearMedia(): Promise<void>;
-    clearTutorials(): Promise<void>;
-    completeTutorial(tutorialId: string): Promise<void>;
     createCheckoutSession(items: Array<ShoppingItem>, successUrl: string, cancelUrl: string): Promise<string>;
-    deleteMedia(id: string): Promise<void>;
-    deletePost(id: string): Promise<void>;
-    deleteProduct(id: string): Promise<void>;
-    deleteStream(id: string): Promise<void>;
-    deleteTutorial(id: string): Promise<void>;
-    filterTutorialsByDifficulty(difficulty: Difficulty): Promise<Array<Tutorial>>;
-    getAIFeedback(tutorialId: string, timestamp: bigint): Promise<AIFeedback | null>;
-    getAIHistory(user: Principal, tutorialId: string): Promise<Array<AIInteraction>>;
-    getBalance(user: Principal): Promise<bigint>;
+    deleteProduct(productId: string): Promise<void>;
     getBlobById(id: string): Promise<MediaFile>;
-    getCallerAddress(): Promise<string>;
+    getBranding(): Promise<Branding>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
-    getChatHistory(): Promise<Array<ChatMessage>>;
-    getOrder(orderId: string): Promise<Order | null>;
-    getStripeConfiguration(): Promise<StripeConfiguration>;
+    getStoreBanner(): Promise<StoreBanner>;
     getStripeSessionStatus(sessionId: string): Promise<StripeSessionStatus>;
-    getTransactionHistory(user: Principal): Promise<Array<TokenTransaction>>;
-    getTutorial(tutorialId: string): Promise<Tutorial | null>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
-    getUserProfiles(): Promise<Array<UserProfile>>;
     initializeAccessControl(): Promise<void>;
-    isAIAssistantEnabled(user: Principal): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     isStripeConfigured(): Promise<boolean>;
     listMedia(): Promise<Array<MediaFile>>;
-    listPosts(): Promise<Array<CommunityPost>>;
     listProducts(): Promise<Array<Product>>;
-    listStreams(): Promise<Array<StreamedContent>>;
-    listTutorials(): Promise<Array<Tutorial>>;
-    mintTokens(recipient: Principal, amount: bigint, description: string): Promise<void>;
-    placeOrder(order: Order): Promise<string>;
-    provideAIResponse(request: AIRequest): Promise<AIResponse>;
-    recordEarning(user: Principal, amount: bigint, description: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
-    sendAIChatResponse(message: string): Promise<void>;
-    sendChatMessage(message: string): Promise<void>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
-    spendTokens(amount: bigint, description: string): Promise<void>;
-    toggleAIAssistant(enabled: boolean): Promise<void>;
-    transferTokens(to: Principal, amount: bigint, description: string): Promise<void>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
-    updateAIFeedback(tutorialId: string, feedback: string, timestamp: bigint): Promise<void>;
-    updateAIHistory(user: Principal, interaction: AIInteraction): Promise<void>;
-    updateProfile(profile: UserProfile): Promise<string>;
+    updateBranding(newBranding: Branding): Promise<void>;
+    updateProduct(product: Product): Promise<void>;
+    updateStoreBanner(newStoreBanner: StoreBanner): Promise<void>;
     uploadMediaFile(media: MediaFile): Promise<string>;
 }

@@ -1,33 +1,72 @@
 {
   "kind": "build_request",
-  "title": "Publish the current app draft to production",
+  "title": "Delete Store page header element and restore persistent store products + Stripe checkout",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Publish the current draft build to production (no functional changes requested).",
-      "target": "unknown",
+      "text": "Delete the first selected element (XPath: /html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[1]) from the Store page UI by removing the corresponding StorePage header/banner section so it no longer renders.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-1"
         ],
         "quotes": [
-          "publish"
+          "just delete the first element"
         ]
       },
       "acceptanceCriteria": [
-        "Production environment is updated to the latest draft version.",
-        "The production URL loads successfully and matches the draft build."
+        "On the Store page, the top header/banner section is not rendered (no image banner/gradient title block at the top).",
+        "No other Store page actions or buttons are removed or changed (including the second selected button).",
+        "The Store page still renders products, loading state, and error state below the removed section without layout breakage."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Restore the store so it displays the products/items that were previously uploaded by making product storage survive canister upgrades (i.e., store product data must persist across redeploy/upgrade).",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "i just want to have the store with the items i have uploaded in the past."
+        ]
+      },
+      "acceptanceCriteria": [
+        "After an upgrade/redeploy, previously added products are still returned by listProducts() without requiring manual restoration.",
+        "Existing addProduct/updateProduct/deleteProduct behavior continues to work for admins."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Ensure the existing Stripe setup remains usable after upgrades by persisting the Stripe configuration across canister upgrades so visitors/users can complete Stripe checkout from the cart using the already-configured Stripe settings.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "visitors and users be able to purchase from store with the stripe payment iv set up before"
+        ]
+      },
+      "acceptanceCriteria": [
+        "If Stripe was configured before an upgrade, isStripeConfigured() returns true after the upgrade without re-entering the configuration.",
+        "Cart Stripe checkout can create a checkout session successfully when Stripe is configured and cart has items.",
+        "If Stripe is not configured, the UI continues to show an appropriate error state and does not attempt checkout."
       ]
     }
   ],
   "constraints": [
-    "Use English for any user-facing text."
+    "Backend must remain a single-actor Motoko canister (all logic in backend/main.mo).",
+    "Create backend/migration.mo only if needed for conditional state upgrade to preserve existing data.",
+    "Do not edit frontend files under frontend/src/components/ui or other immutablePaths listed in SYSTEM_CONTEXT; compose them instead.",
+    "Use English for all user-facing text."
   ],
   "nonGoals": [
-    "Implementing new features (e.g., guest checkout, product/icon image changes) as part of this request.",
-    "Backend schema changes.",
-    "UI/UX redesign."
+    "Add third-party authentication providers (only Internet Identity is supported).",
+    "Introduce external databases or backend services outside the single Motoko canister.",
+    "Add real-time features (WebSockets/push/chat beyond existing functionality)."
   ],
   "imageRequirements": {
     "required": [],

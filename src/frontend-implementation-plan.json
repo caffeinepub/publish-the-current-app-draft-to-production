@@ -1,25 +1,42 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Publish current draft build to production (no functional changes)",
+  "title": "Store UI cleanup and resilient Stripe checkout UX",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Prepare a production release of the current frontend draft without introducing functional changes, including clear publish/verification steps.",
+      "summary": "Remove the Store page header/banner section so the first selected element no longer renders while keeping product list, states, and actions intact.",
       "acceptanceCriteria": [
-        "Production environment is updated to the latest draft version.",
-        "The production URL loads successfully and matches the draft build."
+        "On the Store page, the top header/banner section is not rendered (no image banner/gradient title block at the top).",
+        "No other Store page actions or buttons are removed or changed (including the second selected button).",
+        "The Store page still renders products, loading state, and error state below the removed section without layout breakage."
       ],
       "file_operations": [
         {
-          "path": "frontend/PRODUCTION_RELEASE.md",
-          "operation": "create",
-          "description": "Create a concise production release checklist describing how to publish the current draft build and validate the production URL matches the draft (build, deploy, cache-busting guidance, and post-deploy smoke checks). Ensure all user-facing text referenced in the checklist is English."
+          "path": "frontend/src/pages/StorePage.tsx",
+          "operation": "modify",
+          "description": "Remove the top header/banner JSX block (the first container section rendering the banner image/gradient title/subtitle) so it no longer renders, without altering the actions toolbar, products grid, loading state, or error state below."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Keep Stripe checkout flow reliable across upgrades by ensuring the UI re-checks Stripe configuration state and only attempts checkout when configured and cart has items.",
+      "acceptanceCriteria": [
+        "If Stripe was configured before an upgrade, isStripeConfigured() returns true after the upgrade without re-entering the configuration.",
+        "Cart Stripe checkout can create a checkout session successfully when Stripe is configured and cart has items.",
+        "If Stripe is not configured, the UI continues to show an appropriate error state and does not attempt checkout."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/CartDrawer.tsx",
+          "operation": "modify",
+          "description": "Harden the card checkout UX by re-validating Stripe configuration when the cart drawer is opened (trigger a React Query refresh of the Stripe configuration state) so post-upgrade state changes are reflected without requiring a manual reload; continue to block checkout and show the existing error messaging when not configured. Use the selected stripe component’s frontend integration expectations for checkout redirect behavior; verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/PRODUCTION_SMOKE_CHECKLIST.md",
-          "operation": "create",
-          "description": "Add a lightweight, repeatable smoke-test checklist for production verification focused on existing routes and critical user flows (load app shell, navigation, login/logout behavior, key pages render, and Stripe success/failure routes load) with no product/UX changes."
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Adjust Stripe-related React Query hooks (useIsStripeConfigured / useCreateCheckoutSession) as needed to support on-demand refresh behavior and keep the existing JSON parsing + non-empty url validation for checkout sessions aligned with the selected stripe component guidance; verify the component's usage instructions before implementing."
         }
       ]
     }

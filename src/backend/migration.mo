@@ -1,54 +1,24 @@
 import Map "mo:core/Map";
-import List "mo:core/List";
-import Text "mo:core/Text";
-import Token "token";
-import Time "mo:core/Time";
+import Stripe "stripe/stripe";
 import Principal "mo:core/Principal";
 
 module {
-  type OldMediaFile = {
+  // Redefine types from main.mo (for migration only!)
+  type MediaFile = {
     name : Text;
+    blob : Blob;
     contentType : Text;
-    uploader : Text;
+    uploader : Principal;
   };
 
-  type OldTokenSystem = {
-    balances : Map.Map<Text, Nat>;
-    transactionHistories : Map.Map<Text, List.List<Token.TokenTransaction>>;
+  // Only use new format with all fields (no migration needed if we keep everything the same).
+  type State = {
+    storeProducts : Map.Map<Text, { id : Text; name : Text; description : Text; price : Nat; inventory : Nat; images : [MediaFile] }>;
+    stripeConfiguration : ?Stripe.StripeConfiguration;
+    stripeSessionOwners : Map.Map<Text, Principal>;
   };
 
-  type ChatMessage = {
-    sender : Text;
-    message : Text;
-    timestamp : Time.Time;
-    isAI : Bool;
-  };
-
-  type OldActor = {
-    tutorialCompletions : Map.Map<Text, Map.Map<Text, Bool>>;
-    oldTokenSystem : OldTokenSystem;
-    aiFeedbackStorage : Map.Map<Text, [Token.TokenTransaction]>;
-    stripeSessionOwners : Map.Map<Text, Text>;
-    chatMessages : List.List<Text>;
-    isChatOpen : Bool;
-    chatTutorStatus : Bool;
-    chatHistory : List.List<ChatMessage>;
-  };
-
-  type NewActor = {
-    tutorialCompletions : Map.Map<Text, Map.Map<Text, Bool>>;
-    aiFeedbackStorage : Map.Map<Text, [Token.TokenTransaction]>;
-    stripeSessionOwners : Map.Map<Text, Text>;
-    userChatHistories : Map.Map<Principal, List.List<ChatMessage>>;
-  };
-
-  public func run(old : OldActor) : NewActor {
-    let userChatHistories : Map.Map<Principal, List.List<ChatMessage>> = Map.empty<Principal, List.List<ChatMessage>>();
-    {
-      tutorialCompletions = old.tutorialCompletions;
-      aiFeedbackStorage = old.aiFeedbackStorage;
-      stripeSessionOwners = old.stripeSessionOwners;
-      userChatHistories;
-    };
+  public func run(store : State) : State {
+    store;
   };
 };
