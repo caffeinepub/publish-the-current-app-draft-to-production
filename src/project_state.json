@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "Project to sell 3D printed ocarinas, using their images as app icons and as sellable product items, with checkout that allows purchasing without login.",
+  "architectural_notes": [],
+  "known_issues": [
+    "Build/deploy automation failed to fulfill recent feature requests (prompt unable to be fulfilled)"
+  ],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-publish-the-current-draft-build-to-production-no-functional-changes-requested",
+      "title": "Publish the current draft build to production (no functional changes requested).",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Use images of 3D printed ocarinas as icons and as sellable product items in the app/store",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Allow users to purchase/checkout without requiring login",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Publish the current app draft to production",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

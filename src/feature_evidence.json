@@ -1,0 +1,28 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-publish-the-current-draft-build-to-production-no-functional-changes-requested",
+      "featureTitle": "Publish the current draft build to production (no functional changes requested).",
+      "files": [
+        "frontend/PRODUCTION_RELEASE.md",
+        "frontend/PRODUCTION_SMOKE_CHECKLIST.md"
+      ],
+      "components": [
+        "authorization@3.0.0",
+        "blob-storage@4.0.0",
+        "stripe@3.0.0",
+        "http-outcalls@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

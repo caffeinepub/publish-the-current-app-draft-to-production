@@ -1,0 +1,51 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-13T02:53:10.878Z",
+  "summary": "REQ-1 asks only to publish the existing draft to production with no functional changes. The diff includes documentation/checklists related to production release, but it also modifies frontend authentication/actor behavior and React Query invalidation/refetch behavior, which are functional changes. Additionally, nothing in the diff demonstrates an actual production deployment/update of the production environment or production URL verification.",
+  "missing_requirements": [
+    {
+      "id": "REQ-1",
+      "requirement": "Publish the current draft build to production (no functional changes requested).",
+      "reason": "The diff does not include any production deployment/release configuration or environment update (e.g., CI/CD pipeline changes, deployment scripts, environment config) that would update production to the latest draft. It mainly adds documentation and changes frontend runtime behavior, which does not itself prove production was updated.",
+      "evidence": [
+        "frontend/PRODUCTION_RELEASE.md",
+        "frontend/PRODUCTION_SMOKE_CHECKLIST.md",
+        "MODIFIED FILES list contains only frontend code and a summary file; no deployment/infra files shown"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Functional change: actor creation now returns an anonymous actor when not authenticated, and authenticated path calls initializeAccessControl; additionally, actor changes trigger invalidation and refetch of dependent React Query queries.",
+      "reason": "REQ-1 explicitly requests no functional changes—only publishing the current draft to production. These changes alter runtime behavior and data-fetching/refetch semantics.",
+      "evidence": [
+        "frontend/src/hooks/useActor.ts"
+      ]
+    },
+    {
+      "description": "Functional change in authentication/client configuration (Internet Identity provider logic/options adjusted).",
+      "reason": "REQ-1 requests no functional changes; modifying authentication behavior/configuration goes beyond a pure “publish” request.",
+      "evidence": [
+        "frontend/src/hooks/useInternetIdentity.ts"
+      ]
+    },
+    {
+      "description": "Added/introduced non-goal feature requests in project metadata (guest checkout; using ocarina images as icons/products) as pending requests.",
+      "reason": "Non-goals explicitly say not to implement new features like guest checkout or product/icon image changes as part of this request. While this is metadata (not implementation), it introduces scope not requested for this build/publish-only task.",
+      "evidence": [
+        "project_state.json"
+      ]
+    }
+  ],
+  "confidence": 0.74,
+  "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/PRODUCTION_RELEASE.md",
+    "frontend/PRODUCTION_SMOKE_CHECKLIST.md",
+    "frontend/src/hooks/useActor.ts",
+    "frontend/src/hooks/useInternetIdentity.ts",
+    "frontend/src/main.tsx",
+    "project_state.json"
+  ]
+}

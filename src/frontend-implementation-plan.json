@@ -1,0 +1,27 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Publish current draft build to production (no functional changes)",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Prepare a production release of the current frontend draft without introducing functional changes, including clear publish/verification steps.",
+      "acceptanceCriteria": [
+        "Production environment is updated to the latest draft version.",
+        "The production URL loads successfully and matches the draft build."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/PRODUCTION_RELEASE.md",
+          "operation": "create",
+          "description": "Create a concise production release checklist describing how to publish the current draft build and validate the production URL matches the draft (build, deploy, cache-busting guidance, and post-deploy smoke checks). Ensure all user-facing text referenced in the checklist is English."
+        },
+        {
+          "path": "frontend/PRODUCTION_SMOKE_CHECKLIST.md",
+          "operation": "create",
+          "description": "Add a lightweight, repeatable smoke-test checklist for production verification focused on existing routes and critical user flows (load app shell, navigation, login/logout behavior, key pages render, and Stripe success/failure routes load) with no product/UX changes."
+        }
+      ]
+    }
+  ]
+}

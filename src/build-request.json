@@ -1,0 +1,36 @@
+{
+  "kind": "build_request",
+  "title": "Publish the current app draft to production",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Publish the current draft build to production (no functional changes requested).",
+      "target": "unknown",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "publish"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Production environment is updated to the latest draft version.",
+        "The production URL loads successfully and matches the draft build."
+      ]
+    }
+  ],
+  "constraints": [
+    "Use English for any user-facing text."
+  ],
+  "nonGoals": [
+    "Implementing new features (e.g., guest checkout, product/icon image changes) as part of this request.",
+    "Backend schema changes.",
+    "UI/UX redesign."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}
