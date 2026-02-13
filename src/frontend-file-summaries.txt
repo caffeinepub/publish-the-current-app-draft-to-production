@@ -25,7 +25,5 @@
   "frontend/src/components/AIAssistantPanel.tsx": "AI assistant panel component that displays real-time feedback and guidance during tutorial playback with toggle control, contextual suggestions based on video timestamps, loading states, and integration with backend AI response system.",
   "frontend/src/components/MediaLibraryManager.tsx": "Media library manager component with video upload functionality, upload progress tracking, display of all uploaded media files, and delete functionality with confirmation dialog for admins and uploaders with proper role-based access control.",
   "frontend/src/lib/cartStore.ts": "Zustand store for global shopping cart state management with add, update, remove, clear, and count operations.",
-  "frontend/src/components/AIChatTutor.tsx": "Floating AI chat tutor component with toggle button, chat window interface, message history display, and contextual ocarina learning responses based on user queries.",
-  "frontend/PRODUCTION_RELEASE.md": "Production release documentation with step-by-step deployment instructions, cache-busting guidance, and rollback procedures for publishing the draft build to production.",
-  "frontend/PRODUCTION_SMOKE_CHECKLIST.md": "Comprehensive smoke test checklist covering navigation, authentication, critical user flows, payment integration, AI features, and post-deployment verification for production validation."
+  "frontend/src/components/AIChatTutor.tsx": "Floating AI chat tutor component with toggle button, chat window interface, message history display, and contextual ocarina learning responses based on user queries."
 }
