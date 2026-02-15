@@ -10,19 +10,21 @@ import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 import { toast } from 'sonner';
 import { Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { ExternalBlob } from '../../backend';
-import type { PageSettings, PageSettingsKey } from '../../types';
+import type { PageSettings } from '../../types';
 import type { MediaFile, StoreBanner } from '../../backend';
 import ExternalBlobImage from '../ExternalBlobImage';
 
+type PageKey = 'community' | 'learning';
+
 interface PageSettingsFormProps {
-  pageKey: PageSettingsKey;
+  pageKey: PageKey;
   defaultTitle: string;
   defaultSubtitle: string;
   defaultBannerPath: string;
 }
 
 function PageSettingsForm({ pageKey, defaultTitle, defaultSubtitle, defaultBannerPath }: PageSettingsFormProps) {
-  const { data: pageSettings, isLoading: settingsLoading } = useGetPageSettings(pageKey);
+  const { data: allPageSettings, isLoading: settingsLoading } = useGetPageSettings();
   const updatePageSettings = useUpdatePageSettings();
   const uploadMediaFile = useUploadMediaFile();
   const { identity } = useInternetIdentity();
@@ -35,15 +37,17 @@ function PageSettingsForm({ pageKey, defaultTitle, defaultSubtitle, defaultBanne
   const [hasChanges, setHasChanges] = useState(false);
   const [savedBannerBlob, setSavedBannerBlob] = useState<ExternalBlob | undefined>(undefined);
 
+  const pageSettings = allPageSettings?.[pageKey];
+
   // Load current page settings values
   useEffect(() => {
     if (pageSettings) {
       setTitle(pageSettings.title);
       setSubtitle(pageSettings.subtitle);
       
-      if (pageSettings.heroBanner.heroImage) {
-        setBannerPreview(pageSettings.heroBanner.heroImage.getDirectURL());
-        setSavedBannerBlob(pageSettings.heroBanner.heroImage);
+      if (pageSettings.bannerImage) {
+        setBannerPreview(pageSettings.bannerImage.getDirectURL());
+        setSavedBannerBlob(pageSettings.bannerImage);
       } else {
         setBannerPreview(null);
         setSavedBannerBlob(undefined);
@@ -83,8 +87,8 @@ function PageSettingsForm({ pageKey, defaultTitle, defaultSubtitle, defaultBanne
       setTitle(pageSettings.title);
       setSubtitle(pageSettings.subtitle);
       setBannerFile(null);
-      setBannerPreview(pageSettings.heroBanner.heroImage ? pageSettings.heroBanner.heroImage.getDirectURL() : null);
-      setSavedBannerBlob(pageSettings.heroBanner.heroImage);
+      setBannerPreview(pageSettings.bannerImage ? pageSettings.bannerImage.getDirectURL() : null);
+      setSavedBannerBlob(pageSettings.bannerImage);
     } else {
       setTitle(defaultTitle);
       setSubtitle(defaultSubtitle);
@@ -127,14 +131,18 @@ function PageSettingsForm({ pageKey, defaultTitle, defaultSubtitle, defaultBanne
       const newSettings: PageSettings = {
         title,
         subtitle,
-        heroBanner: {
-          title,
-          subtitle,
-          heroImage: bannerBlob,
-        },
+        bannerImage: bannerBlob,
       };
 
-      await updatePageSettings.mutateAsync({ page: pageKey, settings: newSettings });
+      // Update all page settings with the new one for this page
+      const updatedSettings = {
+        community: allPageSettings?.community || { title: 'Community', subtitle: 'Share your recordings and connect with others' },
+        learning: allPageSettings?.learning || { title: 'Learning Center', subtitle: 'Master the ocarina with AI-powered guidance' },
+        store: allPageSettings?.store || { title: 'Store', subtitle: 'Browse our collection' },
+        [pageKey]: newSettings,
+      };
+
+      await updatePageSettings.mutateAsync(updatedSettings);
       toast.success('Page settings updated successfully');
       setHasChanges(false);
       setBannerFile(null);
@@ -533,26 +541,26 @@ export default function PageSettingsSection() {
             <TabsTrigger value="learning">Learning Page</TabsTrigger>
             <TabsTrigger value="store">Store Page</TabsTrigger>
           </TabsList>
-          <TabsContent value="community" className="space-y-4 mt-6">
+          <TabsContent value="community" className="mt-6">
             <PageSettingsForm
-              pageKey={'community' as any}
+              pageKey="community"
               defaultTitle="Community"
-              defaultSubtitle="Share your music and connect with others"
+              defaultSubtitle="Share your recordings and connect with others"
               defaultBannerPath="/assets/generated/community-banner.dim_800x400.jpg"
             />
           </TabsContent>
-          <TabsContent value="learning" className="space-y-4 mt-6">
+          <TabsContent value="learning" className="mt-6">
             <PageSettingsForm
-              pageKey={'learning' as any}
+              pageKey="learning"
               defaultTitle="Learning Center"
               defaultSubtitle="Master the ocarina with AI-powered guidance"
               defaultBannerPath="/assets/generated/learning-section-banner.dim_800x400.jpg"
             />
           </TabsContent>
-          <TabsContent value="store" className="space-y-4 mt-6">
+          <TabsContent value="store" className="mt-6">
             <StoreBannerForm
               defaultTitle="Store"
-              defaultSubtitle="Quality ocarinas and accessories"
+              defaultSubtitle="Browse our collection"
               defaultBannerPath="/assets/generated/store-banner.dim_800x400.jpg"
             />
           </TabsContent>

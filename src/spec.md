@@ -1,11 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Simplify the Store page header UI and ensure store products and Stripe checkout remain available after canister upgrades.
+**Goal:** Rename the public-facing app/webpage name to **3Docarinas** across all visible UI text and the browser title.
 
 **Planned changes:**
-- Remove the Store page’s top header/banner section so the first selected element no longer renders.
-- Update backend product storage to persist uploaded products across canister redeploy/upgrade so existing items still appear.
-- Persist existing Stripe configuration across upgrades so Stripe checkout continues to work without reconfiguration.
+- Update the HTML document title in `frontend/index.html` to "3Docarinas".
+- Replace navbar/site name fallback text in `frontend/src/components/Layout.tsx` with "3Docarinas" when no `branding.siteName` is set.
+- Update loading screen copy in `frontend/src/components/LoadingScreen.tsx` to "Loading 3Docarinas...".
+- Spot-check and replace any remaining public-page visible references to the old ocarina-branded app name (header, footer, homepage hero area).
 
-**User-visible outcome:** The Store page no longer shows the top banner/header, previously uploaded products still appear after upgrades, and users can continue completing Stripe checkout with the existing Stripe setup (or see the existing “not configured” error state when applicable).
+**User-visible outcome:** The public webpage consistently displays the app name as **3Docarinas** (including the browser tab title and loading screen), with no remaining "Ocarina" name references.

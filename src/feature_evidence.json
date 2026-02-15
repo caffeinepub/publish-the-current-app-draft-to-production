@@ -2,10 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-delete-the-first-selected-element-xpath-html-1-body-1-div-1-div-1-main-1-div-1-div-1-div-1-from-the-store-page-ui-by-removing-the-corresponding-storepage-header-banner-section-so-it-no-longer-renders",
-      "featureTitle": "Delete the first selected element (XPath: /html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[1]) from the Store page UI by removing the corresponding StorePage header/banner section so it no longer renders.",
+      "featureId": "feature-update-all-user-facing-app-name-text-on-the-public-webpage-from-the-current-ocarina-branded-wording-e-g-ocarina-learning-community-platform-ocarina-learning-ocarina-hub-to-3docarinas-exact-capitalization",
+      "featureTitle": "Update all user-facing app name text on the public webpage from the current ocarina-branded wording (e.g., \"Ocarina Learning & Community Platform\", \"Ocarina Learning\", \"Ocarina Hub\") to \"3Docarinas\" (exact capitalization).",
       "files": [
-        "frontend/src/pages/StorePage.tsx"
+        "frontend/index.html",
+        "frontend/src/components/Layout.tsx",
+        "frontend/src/components/LoadingScreen.tsx"
       ],
       "components": [
         "authorization@3.0.0",
@@ -20,29 +22,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-ensure-the-existing-stripe-setup-remains-usable-after-upgrades-by-persisting-the-stripe-configuration-across-canister-upgrades-so-visitors-users-can-complete-stripe-checkout-from-the-cart-using-the-already-configured-stripe-settings",
-      "featureTitle": "Ensure the existing Stripe setup remains usable after upgrades by persisting the Stripe configuration across canister upgrades so visitors/users can complete Stripe checkout from the cart using the already-configured Stripe settings.",
-      "files": [
-        "frontend/src/components/CartDrawer.tsx",
-        "frontend/src/hooks/useQueries.ts"
-      ],
-      "components": [
-        "authorization@3.0.0",
-        "blob-storage@4.0.0",
-        "stripe@3.0.0",
-        "http-outcalls@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
       ],
       "confidence": "high"
     }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ import EditProductDialog from '../components/EditProductDialog';
 import RestoreProductsDialog from '../components/RestoreProductsDialog';
 import ExternalBlobImage from '../components/ExternalBlobImage';
 import { useCartStore } from '../lib/cartStore';
+import CartDrawer from '../components/CartDrawer';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 
 export default function StorePage() {
   const { data: products = [], isLoading, error, refetch } = useListProducts();
@@ -32,6 +34,7 @@ export default function StorePage() {
   const { identity } = useInternetIdentity();
   const addToCart = useCartStore(state => state.addToCart);
   const removeItem = useCartStore(state => state.removeItem);
+  const getItemCount = useCartStore(state => state.getItemCount);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showEditProduct, setShowEditProduct] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
@@ -39,9 +42,26 @@ export default function StorePage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const search = useSearch({ strict: false }) as { checkout?: string };
 
   const isAuthenticated = !!identity;
+  const cartItemCount = getItemCount();
+
+  // Auto-open cart drawer when navigating with checkout flag
+  useEffect(() => {
+    if (search?.checkout === '1') {
+      setCartOpen(true);
+      // Clear the checkout flag from URL to prevent re-triggering
+      navigate({ 
+        to: '/store', 
+        search: {},
+        replace: true 
+      });
+    }
+  }, [search?.checkout, navigate]);
 
   const handleAddToCart = (product: Product) => {
     addToCart(product);
@@ -149,6 +169,19 @@ export default function StorePage() {
             title="Refresh product list"
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => setCartOpen(true)}
+            className="gap-2 relative"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            View Cart
+            {cartItemCount > 0 && (
+              <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                {cartItemCount}
+              </Badge>
+            )}
           </Button>
           {isAdmin && (
             <Button onClick={() => setShowAddProduct(true)} className="gap-2">
@@ -266,17 +299,14 @@ export default function StorePage() {
         />
       )}
       <RestoreProductsDialog open={showRestoreProducts} onOpenChange={setShowRestoreProducts} />
+      <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <img src="/assets/generated/warning-confirmation-icon-transparent.dim_32x32.png" alt="Warning" className="h-6 w-6" />
-              Delete Product?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Delete Product</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{productToDelete?.name}"? This action cannot be undone.
-              All associated images will also be removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -284,16 +314,8 @@ export default function StorePage() {
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deleteProduct.isPending}
             >
-              {deleteProduct.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                'Delete'
-              )}
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

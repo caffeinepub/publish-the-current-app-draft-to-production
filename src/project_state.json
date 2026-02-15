@@ -1,28 +1,18 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project to restore an ecommerce store experience: show previously uploaded products and allow visitors/users to purchase using existing Stripe setup; also delete a specific first UI element.",
-  "architectural_notes": [
-    "Use existing Stripe integration/settings already configured for payments."
-  ],
+  "summary": "App with Stripe payments; restore Stripe settings panel in admin and update app webpage/name to 3Docarinas.",
+  "architectural_notes": [],
   "known_issues": [
-    "Store is currently not showing previously uploaded products and/or purchase flow via Stripe is not working; needs restoration."
+    "Stripe payments configuration panel is not showing in the draft (Version 40)"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-delete-the-first-selected-element-xpath-html-1-body-1-div-1-div-1-main-1-div-1-div-1-div-1-from-the-store-page-ui-by-removing-the-corresponding-storepage-header-banner-section-so-it-no-longer-renders",
-      "title": "Delete the first selected element (XPath: /html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[1]) from the Store page UI by removing the corresponding StorePage header/banner section so it no longer renders.",
+      "id": "feature-update-all-user-facing-app-name-text-on-the-public-webpage-from-the-current-ocarina-branded-wording-e-g-ocarina-learning-community-platform-ocarina-learning-ocarina-hub-to-3docarinas-exact-capitalization",
+      "title": "Update all user-facing app name text on the public webpage from the current ocarina-branded wording (e.g., \"Ocarina Learning & Community Platform\", \"Ocarina Learning\", \"Ocarina Hub\") to \"3Docarinas\" (exact capitalization).",
       "reqIds": [
         "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-ensure-the-existing-stripe-setup-remains-usable-after-upgrades-by-persisting-the-stripe-configuration-across-canister-upgrades-so-visitors-users-can-complete-stripe-checkout-from-the-cart-using-the-already-configured-stripe-settings",
-      "title": "Ensure the existing Stripe setup remains usable after upgrades by persisting the Stripe configuration across canister upgrades so visitors/users can complete Stripe checkout from the cart using the already-configured Stripe settings.",
-      "reqIds": [
-        "REQ-3"
       ],
       "version": 1
     }
@@ -30,32 +20,18 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Delete the first selected UI element from the page (remove from underlying code).",
+      "summary": "Restore Stripe payments settings/configuration panel in the admin area (visible in draft)",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Restore store to display previously uploaded products/items.",
+      "summary": "Change app webpage/name from “Ocarina Learning and Community” to “3Docarinas”",
       "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Enable purchasing from the store using the existing Stripe payment setup (incl. cart/checkout flow).",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Restore the store so it displays the products/items that were previously uploaded by making product storage survive canister upgrades (i.e., store product data must persist across redeploy/upgrade).",
-      "reqIds": [
-        "REQ-2"
-      ],
       "status": "pending"
     }
   ],
-  "projectName": "Delete Store page header element and restore persistent store products + Stripe checkout",
+  "projectName": "3Docarinas",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

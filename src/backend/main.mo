@@ -1,4 +1,3 @@
-import Migration "migration";
 import Principal "mo:core/Principal";
 import List "mo:core/List";
 import Map "mo:core/Map";
@@ -16,8 +15,9 @@ import MixinStorage "blob-storage/Mixin";
 import Token "token";
 import Runtime "mo:core/Runtime";
 
+
 // Use data migration (stateful actor)
-(with migration = Migration.run)
+
 actor {
   include MixinStorage();
 
@@ -485,4 +485,3 @@ actor {
     storeProducts.values().toArray();
   };
 };
-

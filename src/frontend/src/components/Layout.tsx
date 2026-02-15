@@ -59,8 +59,12 @@ export default function Layout() {
     }
   };
 
+  const handleCheckoutClick = () => {
+    navigate({ to: '/store', search: { checkout: '1' } });
+  };
+
   // Use branding values with fallbacks
-  const siteName = branding?.siteName || 'Ocarina Learning';
+  const siteName = branding?.siteName || '3Docarinas';
   const logoUrl = branding?.logo?.getDirectURL() || '/assets/generated/ocarina-logo-transparent.dim_200x200.png';
 
   return (
@@ -108,20 +112,30 @@ export default function Layout() {
               </Button>
             )}
             {cartCount > 0 && (
-              <Button
-                variant="outline"
-                size="icon"
-                className="relative"
-                onClick={() => navigate({ to: '/store' })}
-              >
-                <ShoppingCart className="h-4 w-4" />
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="relative"
+                  onClick={() => navigate({ to: '/store' })}
                 >
-                  {cartCount}
-                </Badge>
-              </Button>
+                  <ShoppingCart className="h-4 w-4" />
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  >
+                    {cartCount}
+                  </Badge>
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleCheckoutClick}
+                  className="gap-2"
+                >
+                  Checkout
+                </Button>
+              </div>
             )}
             {isAuthenticated && (
               <Button

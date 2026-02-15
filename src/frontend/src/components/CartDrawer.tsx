@@ -67,17 +67,21 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
 
     try {
       const baseUrl = `${window.location.protocol}//${window.location.host}`;
-      const session = await createCheckout.mutateAsync({
+      const sessionResult = await createCheckout.mutateAsync({
         items,
         successUrl: `${baseUrl}/payment-success`,
         cancelUrl: `${baseUrl}/payment-failure`,
       });
+      
+      // Parse JSON result from backend
+      const session = JSON.parse(sessionResult) as { id: string; url: string };
       
       // Validate session URL before redirecting
       if (!session?.url) {
         throw new Error('Stripe session missing url');
       }
       
+      // Use window.location.href for external redirect (not router navigation)
       window.location.href = session.url;
     } catch (error: any) {
       const errorMessage = error?.message || String(error);
@@ -158,182 +162,143 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                 alt="Empty cart" 
                 className="mx-auto h-32 w-auto opacity-50"
               />
-              <p className="text-muted-foreground">Add some products to get started</p>
+              <p className="text-muted-foreground">Your cart is empty</p>
             </div>
           ) : (
             <>
-              {/* Cart Items */}
-              <div className="space-y-4">
-                {cart.map((item) => (
-                  <div key={item.product.id} className="flex gap-4 p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{item.product.name}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-1">{item.product.description}</p>
-                      <p className="text-lg font-bold text-primary mt-2">
-                        ${(Number(item.product.price) / 100).toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
+              {cart.map((item) => (
+                <div key={item.product.id} className="flex gap-4 p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-semibold">{item.product.name}</h4>
+                    <p className="text-sm text-muted-foreground line-clamp-1">{item.product.description}</p>
+                    <p className="text-lg font-bold text-primary mt-2">
+                      ${(Number(item.product.price) / 100).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeItem(item.product.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <div className="flex items-center gap-2">
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => removeItem(item.product.id)}
+                        onClick={() => updateQuantity(item.product.id, -1)}
+                        disabled={item.quantity <= 1}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Minus className="h-3 w-3" />
                       </Button>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateQuantity(item.product.id, Math.max(1, item.quantity - 1))}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="w-8 text-center font-medium">{item.quantity}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateQuantity(item.product.id, Math.min(Number(item.product.inventory), item.quantity + 1))}
-                          disabled={item.quantity >= Number(item.product.inventory)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <span className="w-8 text-center font-medium">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateQuantity(item.product.id, 1)}
+                        disabled={item.quantity >= Number(item.product.inventory)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
 
               <Separator />
 
-              {/* Total */}
               <div className="space-y-2">
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total:</span>
                   <span>${(total / 100).toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Token equivalent:</span>
-                  <span className="flex items-center gap-1">
-                    <img src="/assets/generated/token-coin-icon-transparent.dim_64x64.png" alt="Token" className="h-4 w-4" />
-                    {totalInTokens} tokens
-                  </span>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  ≈ {totalInTokens} tokens
+                </p>
               </div>
-
-              <Separator />
-
-              {/* Payment Methods */}
-              <Tabs value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'stripe' | 'tokens')}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="stripe" className="gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    Card
-                  </TabsTrigger>
-                  <TabsTrigger value="tokens" className="gap-2">
-                    <Coins className="h-4 w-4" />
-                    Tokens
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="stripe" className="space-y-4">
-                  {stripeConfigLoading ? (
-                    <Alert>
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>Checking payment availability...</AlertDescription>
-                    </Alert>
-                  ) : !stripeConfigured ? (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        {isAdmin 
-                          ? 'Stripe is not configured. Please configure Stripe in the Admin panel to accept card payments.'
-                          : 'Card payments are temporarily unavailable. Please try using tokens or contact support.'}
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <>
-                      <p className="text-sm text-muted-foreground">
-                        Pay securely with credit or debit card via Stripe
-                      </p>
-                      <Alert>
-                        <img src="/assets/generated/reward-token-icon-transparent.dim_64x64.png" alt="Bonus" className="h-4 w-4" />
-                        <AlertDescription>
-                          Earn {bonusTokens} bonus tokens (5%) with this purchase!
-                        </AlertDescription>
-                      </Alert>
-                    </>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="tokens" className="space-y-4">
-                  {!isAuthenticated ? (
-                    <Alert variant="destructive">
-                      <LogIn className="h-4 w-4" />
-                      <AlertDescription>
-                        Please login to pay with tokens
-                      </AlertDescription>
-                    </Alert>
-                  ) : !hasEnoughTokens ? (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        Insufficient balance. You have {tokenBalance} tokens but need {totalInTokens} tokens.
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">
-                        Pay with your token balance
-                      </p>
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <span className="text-sm">Your balance:</span>
-                        <span className="font-semibold flex items-center gap-1">
-                          <img src="/assets/generated/token-coin-icon-transparent.dim_64x64.png" alt="Token" className="h-5 w-5" />
-                          {tokenBalance} tokens
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
             </>
           )}
         </div>
 
-        <DrawerFooter>
-          {cart.length > 0 && (
-            <>
-              {paymentMethod === 'stripe' ? (
-                <Button 
-                  className="w-full gap-2" 
-                  size="lg"
-                  onClick={handleStripeCheckout}
-                  disabled={createCheckout.isPending || stripeConfigLoading || !stripeConfigured}
-                >
-                  <CreditCard className="h-5 w-5" />
-                  {createCheckout.isPending ? 'Processing...' : 'Checkout with Card'}
-                </Button>
-              ) : (
-                <Button 
-                  className="w-full gap-2" 
-                  size="lg"
-                  onClick={handleTokenCheckout}
-                  disabled={!isAuthenticated || !hasEnoughTokens || spendTokens.isPending}
-                >
-                  <Coins className="h-5 w-5" />
-                  {spendTokens.isPending ? 'Processing...' : 'Pay with Tokens'}
-                </Button>
-              )}
-            </>
-          )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-        </DrawerFooter>
+        {cart.length > 0 && (
+          <DrawerFooter>
+            <Tabs value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'stripe' | 'tokens')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="stripe">Card Payment</TabsTrigger>
+                <TabsTrigger value="tokens">Token Payment</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="stripe" className="space-y-4">
+                {stripeConfigLoading ? (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>Checking payment availability...</AlertDescription>
+                  </Alert>
+                ) : !stripeConfigured ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {isAdmin 
+                        ? 'Stripe is not configured. Please configure Stripe in the Admin panel.'
+                        : 'Card payments are temporarily unavailable. Please try token payment or contact support.'}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Earn {bonusTokens} bonus tokens with this purchase!
+                  </p>
+                  <Button 
+                    className="w-full gap-2" 
+                    onClick={handleStripeCheckout}
+                    disabled={createCheckout.isPending || !stripeConfigured}
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    {createCheckout.isPending ? 'Processing...' : 'Checkout with Card'}
+                  </Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="tokens" className="space-y-4">
+                {!isAuthenticated ? (
+                  <Alert>
+                    <LogIn className="h-4 w-4" />
+                    <AlertDescription>
+                      Please login to pay with tokens
+                    </AlertDescription>
+                  </Alert>
+                ) : !hasEnoughTokens ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Insufficient balance. You have {tokenBalance} tokens but need {totalInTokens} tokens.
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Your balance:</span>
+                    <span className="font-medium flex items-center gap-1">
+                      <img src="/assets/generated/token-coin-icon-transparent.dim_64x64.png" alt="Token" className="h-4 w-4" />
+                      {tokenBalance} tokens
+                    </span>
+                  </div>
+                  <Button 
+                    className="w-full gap-2" 
+                    onClick={handleTokenCheckout}
+                    disabled={!isAuthenticated || !hasEnoughTokens || spendTokens.isPending}
+                  >
+                    <Coins className="h-4 w-4" />
+                    {spendTokens.isPending ? 'Processing...' : `Pay ${totalInTokens} Tokens`}
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </DrawerFooter>
+        )}
       </DrawerContent>
     </Drawer>
   );

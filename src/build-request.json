@@ -1,72 +1,37 @@
 {
   "kind": "build_request",
-  "title": "Delete Store page header element and restore persistent store products + Stripe checkout",
+  "title": "Rename app webpage to 3Docarinas",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Delete the first selected element (XPath: /html[1]/body[1]/div[1]/div[1]/main[1]/div[1]/div[1]/div[1]) from the Store page UI by removing the corresponding StorePage header/banner section so it no longer renders.",
+      "text": "Update all user-facing app name text on the public webpage from the current ocarina-branded wording (e.g., \"Ocarina Learning & Community Platform\", \"Ocarina Learning\", \"Ocarina Hub\") to \"3Docarinas\" (exact capitalization).",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "just delete the first element"
+          "nevermind, can you change the app webpage from ocarina learning and community to 3docarinas",
+          "make it 3Docarinas"
         ]
       },
       "acceptanceCriteria": [
-        "On the Store page, the top header/banner section is not rendered (no image banner/gradient title block at the top).",
-        "No other Store page actions or buttons are removed or changed (including the second selected button).",
-        "The Store page still renders products, loading state, and error state below the removed section without layout breakage."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Restore the store so it displays the products/items that were previously uploaded by making product storage survive canister upgrades (i.e., store product data must persist across redeploy/upgrade).",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "i just want to have the store with the items i have uploaded in the past."
-        ]
-      },
-      "acceptanceCriteria": [
-        "After an upgrade/redeploy, previously added products are still returned by listProducts() without requiring manual restoration.",
-        "Existing addProduct/updateProduct/deleteProduct behavior continues to work for admins."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Ensure the existing Stripe setup remains usable after upgrades by persisting the Stripe configuration across canister upgrades so visitors/users can complete Stripe checkout from the cart using the already-configured Stripe settings.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "visitors and users be able to purchase from store with the stripe payment iv set up before"
-        ]
-      },
-      "acceptanceCriteria": [
-        "If Stripe was configured before an upgrade, isStripeConfigured() returns true after the upgrade without re-entering the configuration.",
-        "Cart Stripe checkout can create a checkout session successfully when Stripe is configured and cart has items.",
-        "If Stripe is not configured, the UI continues to show an appropriate error state and does not attempt checkout."
+        "The HTML document title in frontend/index.html is \"3Docarinas\" (no remaining \"Ocarina Learning & Community Platform\").",
+        "The navbar/site name fallback text rendered by frontend/src/components/Layout.tsx shows \"3Docarinas\" when no branding.siteName is set (no remaining \"Ocarina Learning\").",
+        "The loading screen text in frontend/src/components/LoadingScreen.tsx reads \"Loading 3Docarinas...\" (no remaining \"Loading Ocarina Hub...\").",
+        "No other visible UI strings on the public-facing pages refer to the old app name (manual spot-check: header, footer, loading screen, and homepage hero area)."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single-actor Motoko canister (all logic in backend/main.mo).",
-    "Create backend/migration.mo only if needed for conditional state upgrade to preserve existing data.",
-    "Do not edit frontend files under frontend/src/components/ui or other immutablePaths listed in SYSTEM_CONTEXT; compose them instead.",
-    "Use English for all user-facing text."
+    "Do not modify files under frontend/src/components/ui (read-only Shadcn components).",
+    "Keep changes limited to renaming/relabeling; do not introduce new features or alter Stripe/checkout behavior."
   ],
   "nonGoals": [
-    "Add third-party authentication providers (only Internet Identity is supported).",
-    "Introduce external databases or backend services outside the single Motoko canister.",
-    "Add real-time features (WebSockets/push/chat beyond existing functionality)."
+    "Restoring the Stripe settings panel in admin.",
+    "Adding sorting controls for store items in the admin.",
+    "Changing logos, icons, or generated images."
   ],
   "imageRequirements": {
     "required": [],
