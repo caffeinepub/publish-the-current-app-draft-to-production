@@ -1,40 +1,130 @@
 {
   "kind": "build_request",
-  "title": "Rename app webpage to 3Docarinas",
+  "title": "Restore admin payment settings with Stripe test/live keys, mode toggle, and backend persistence",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update all user-facing app name text on the public webpage from the current ocarina-branded wording (e.g., \"Ocarina Learning & Community Platform\", \"Ocarina Learning\", \"Ocarina Hub\") to \"3Docarinas\" (exact capitalization).",
+      "text": "Restore the Admin > Payments > Payment Settings UI so it visibly shows configurable options (not an empty section), including inputs for Stripe Test Secret Key and Stripe Live Secret Key plus a Test/Live mode toggle, and a clear Save/Update action.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "nevermind, can you change the app webpage from ocarina learning and community to 3docarinas",
-          "make it 3Docarinas"
+          "payment settings does not show any options",
+          "1 admin, 2 stripe key test live mode, configuration.",
+          "1 yes 2 yes 3 restored"
         ]
       },
       "acceptanceCriteria": [
-        "The HTML document title in frontend/index.html is \"3Docarinas\" (no remaining \"Ocarina Learning & Community Platform\").",
-        "The navbar/site name fallback text rendered by frontend/src/components/Layout.tsx shows \"3Docarinas\" when no branding.siteName is set (no remaining \"Ocarina Learning\").",
-        "The loading screen text in frontend/src/components/LoadingScreen.tsx reads \"Loading 3Docarinas...\" (no remaining \"Loading Ocarina Hub...\").",
-        "No other visible UI strings on the public-facing pages refer to the old app name (manual spot-check: header, footer, loading screen, and homepage hero area)."
+        "When an admin opens the Payments tab, they can immediately find and interact with payment settings without needing hidden/undiscoverable actions.",
+        "The UI includes fields labeled in English for: Stripe Test Secret Key, Stripe Live Secret Key, and a Test/Live mode toggle.",
+        "A Save/Update action is present and enabled/disabled appropriately (e.g., during save).",
+        "User-facing validation messages are in English (e.g., missing key)."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Implement backend persistence for the Stripe payment settings by storing: test secret key, live secret key, allowed countries (if still supported), and the active mode (test|live) in the backend canister, and enforce admin-only updates and admin-only reads of secrets.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "2 yes",
+          "stripe key test live mode, configuration."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Only admins can update Stripe payment settings; non-admin callers receive an authorization error.",
+        "Only admins can read back the Stripe configuration that includes secret key material.",
+        "Stripe settings persist across canister upgrades (i.e., stored in stable state).",
+        "The stored configuration includes an explicit active mode value (test or live)."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Update the backend Stripe integration so checkout/session creation uses the active Stripe mode and corresponding secret key automatically, and update the frontend checkout availability logic to reflect whether the currently selected mode is configured.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Should these settings be saved in the backend canister so the checkout uses them automatically?",
+          "2 yes"
+        ]
+      },
+      "acceptanceCriteria": [
+        "If mode is set to Test, Stripe session creation uses the Test secret key; if mode is Live, it uses the Live secret key.",
+        "If the active mode’s key is missing, checkout is treated as not configured and the UI shows card payments as unavailable.",
+        "Existing token checkout continues to work unchanged.",
+        "Admin-facing error messaging remains informative; non-admins see a generic failure message as currently implemented."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Add/adjust React Query hooks and frontend types to support the restored Stripe payment settings (test key, live key, active mode, and any existing fields such as allowed countries), and ensure the admin Payment Settings UI reads current settings and saves updates successfully.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "stripe key test live mode, configuration.",
+          "1 yes 2 yes 3 restored"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Admin Payment Settings screen loads current Stripe settings (excluding full secret values if masking is required) and reflects the currently active mode.",
+        "Saving settings invalidates and refreshes relevant queries (e.g., configured status, admin config query), and the UI reflects the new values.",
+        "No changes are made to immutable frontend paths listed in SYSTEM_CONTEXT."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "If the Stripe configuration state shape changes in a way that would break existing persisted state, add a conditional migration in backend/migration.mo to map the previous Stripe configuration into the new structure with a safe default (e.g., set both test/live keys from the prior single key and default mode to test), without breaking existing order data.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "earlier version was working",
+          "restored"
+        ]
+      },
+      "acceptanceCriteria": [
+        "On upgrade, existing deployments with prior Stripe configuration data do not trap due to decoding errors.",
+        "After migration, admin can view/save Stripe settings and checkout configuration checks work.",
+        "Existing orders and other stored data remain intact."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/components/ui (read-only Shadcn components).",
-    "Keep changes limited to renaming/relabeling; do not introduce new features or alter Stripe/checkout behavior."
+    "Backend must remain a single Motoko actor in backend/main.mo.",
+    "Do not edit files under frontend immutablePaths (compose read-only UI components instead).",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Restoring the Stripe settings panel in admin.",
-    "Adding sorting controls for store items in the admin.",
-    "Changing logos, icons, or generated images."
+    "Implementing real card payment capture/Stripe Elements UI (this request is specifically about restoring admin settings and configuration usage).",
+    "Adding third-party authentication providers (only Internet Identity is supported).",
+    "Introducing external databases or additional backend services."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

@@ -5,12 +5,14 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Minus, Plus, Trash2, CreditCard, AlertCircle, Coins, LogIn } from 'lucide-react';
-import { useCreateCheckoutSession, useSpendTokens, useGetCallerUserProfile, useIsStripeConfigured, useIsCallerAdmin } from '../hooks/useQueries';
+import { useSpendTokens, useGetCallerUserProfile, useGetStripePublicConfig, useIsCallerAdmin, useSavePurchaseOrder } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { toast } from 'sonner';
-import type { ShoppingItem } from '../backend';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCartStore } from '../lib/cartStore';
+import StripeCardCheckoutForm from './checkout/StripeCardCheckoutForm';
+import BuyerDetailsFields from './checkout/BuyerDetailsFields';
+import { Variant_token_card, type OrderedProduct, type BuyerDetails, StripeMode } from '../backend';
 
 interface CartDrawerProps {
   open: boolean;
@@ -24,13 +26,19 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   const clearCart = useCartStore(state => state.clearCart);
   
   const { identity } = useInternetIdentity();
-  const createCheckout = useCreateCheckoutSession();
   const spendTokens = useSpendTokens();
+  const savePurchaseOrder = useSavePurchaseOrder();
   const { data: userProfile } = useGetCallerUserProfile();
-  const { data: stripeConfigured, isLoading: stripeConfigLoading, refetch: refetchStripeConfig } = useIsStripeConfigured();
+  const { data: stripePublicConfig, isLoading: stripeConfigLoading, refetch: refetchStripeConfig } = useGetStripePublicConfig();
   const { data: isAdmin } = useIsCallerAdmin();
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'tokens'>('stripe');
   const queryClient = useQueryClient();
+
+  // Token checkout buyer details
+  const [tokenName, setTokenName] = useState('');
+  const [tokenPhone, setTokenPhone] = useState('');
+  const [tokenNotes, setTokenNotes] = useState('');
+  const [tokenErrors, setTokenErrors] = useState<{ name?: string; phoneNumber?: string }>({});
 
   const isAuthenticated = !!identity;
   const total = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
@@ -39,6 +47,11 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   const hasEnoughTokens = tokenBalance >= totalInTokens;
   const bonusTokens = Math.ceil(total / 100 * 0.05); // 5% bonus
 
+  // Check if card payments are available based on active mode
+  const isCardPaymentAvailable = stripePublicConfig 
+    ? (stripePublicConfig.activeMode === StripeMode.test ? stripePublicConfig.hasTestKey : stripePublicConfig.hasLiveKey)
+    : false;
+
   // Refresh Stripe configuration when drawer opens
   useEffect(() => {
     if (open) {
@@ -46,65 +59,21 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
     }
   }, [open, refetchStripeConfig]);
 
-  const handleStripeCheckout = async () => {
-    // Check if Stripe is configured before attempting checkout
-    if (!stripeConfigured) {
-      if (isAdmin) {
-        toast.error('Stripe is not configured. Please configure Stripe in the Admin panel before accepting payments.');
-      } else {
-        toast.error('Checkout is temporarily unavailable. Please try again later or use an alternative payment method.');
-      }
-      return;
+  const validateTokenFields = (): boolean => {
+    const newErrors: { name?: string; phoneNumber?: string } = {};
+
+    if (!tokenName.trim()) {
+      newErrors.name = 'Name is required';
     }
 
-    const items: ShoppingItem[] = cart.map(item => ({
-      productName: item.product.name,
-      productDescription: item.product.description,
-      priceInCents: BigInt(item.product.price),
-      quantity: BigInt(item.quantity),
-      currency: 'usd',
-    }));
-
-    try {
-      const baseUrl = `${window.location.protocol}//${window.location.host}`;
-      const sessionResult = await createCheckout.mutateAsync({
-        items,
-        successUrl: `${baseUrl}/payment-success`,
-        cancelUrl: `${baseUrl}/payment-failure`,
-      });
-      
-      // Parse JSON result from backend
-      const session = JSON.parse(sessionResult) as { id: string; url: string };
-      
-      // Validate session URL before redirecting
-      if (!session?.url) {
-        throw new Error('Stripe session missing url');
-      }
-      
-      // Use window.location.href for external redirect (not router navigation)
-      window.location.href = session.url;
-    } catch (error: any) {
-      const errorMessage = error?.message || String(error);
-      
-      // Check for specific error messages from backend
-      if (errorMessage.includes('Stripe needs to be first configured')) {
-        if (isAdmin) {
-          toast.error('Stripe configuration error: Please configure Stripe in the Admin panel with your secret key and allowed countries.');
-        } else {
-          toast.error('Checkout is temporarily unavailable. Please try again later or use an alternative payment method.');
-        }
-      } else if (errorMessage.includes('Stripe session missing url')) {
-        toast.error('Unable to create checkout session. Please try again or contact support.');
-      } else {
-        // Generic error handling
-        if (isAdmin) {
-          toast.error(`Checkout failed: ${errorMessage}`);
-        } else {
-          toast.error('Unable to process checkout. Please try again or contact support.');
-        }
-      }
-      console.error('Checkout error:', error);
+    if (!tokenPhone.trim()) {
+      newErrors.phoneNumber = 'Phone number is required';
+    } else if (tokenPhone.trim().length < 10) {
+      newErrors.phoneNumber = 'Please enter a valid phone number';
     }
+
+    setTokenErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleTokenCheckout = async () => {
@@ -118,11 +87,39 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
       return;
     }
 
+    if (!validateTokenFields()) {
+      return;
+    }
+
     try {
       const productNames = cart.map(item => `${item.quantity}x ${item.product.name}`).join(', ');
+      
+      // Spend tokens first
       await spendTokens.mutateAsync({
         amount: BigInt(totalInTokens),
         description: `Purchase: ${productNames}`,
+      });
+
+      // Prepare order data
+      const products: OrderedProduct[] = cart.map(item => ({
+        id: item.product.id,
+        name: item.product.name,
+        price: item.product.price,
+        quantity: BigInt(item.quantity),
+      }));
+
+      const buyerDetails: BuyerDetails = {
+        name: tokenName.trim(),
+        phoneNumber: tokenPhone.trim(),
+        notes: tokenNotes.trim(),
+      };
+
+      // Save the order
+      await savePurchaseOrder.mutateAsync({
+        products,
+        total: BigInt(total),
+        buyerDetails,
+        paymentType: Variant_token_card.token,
       });
       
       queryClient.invalidateQueries({ queryKey: ['tokenBalance'] });
@@ -137,10 +134,27 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
       );
       clearCart();
       onOpenChange(false);
+      
+      // Reset form
+      setTokenName('');
+      setTokenPhone('');
+      setTokenNotes('');
     } catch (error: any) {
       const errorMessage = error?.message || 'Failed to complete purchase';
       toast.error(errorMessage);
       console.error(error);
+    }
+  };
+
+  const handleCardCheckoutSuccess = () => {
+    onOpenChange(false);
+  };
+
+  const handleCardCheckoutError = (error: string) => {
+    if (isAdmin) {
+      toast.error(`Checkout failed: ${error}`);
+    } else {
+      toast.error('Unable to process checkout. Please try again or contact support.');
     }
   };
 
@@ -237,29 +251,23 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>Checking payment availability...</AlertDescription>
                   </Alert>
-                ) : !stripeConfigured ? (
+                ) : !isCardPaymentAvailable ? (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
                       {isAdmin 
-                        ? 'Stripe is not configured. Please configure Stripe in the Admin panel.'
+                        ? `Card payments are not available. Please configure the ${stripePublicConfig?.activeMode === StripeMode.test ? 'Test' : 'Live'} Stripe key in the Admin panel.`
                         : 'Card payments are temporarily unavailable. Please try token payment or contact support.'}
                     </AlertDescription>
                   </Alert>
-                ) : null}
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    Earn {bonusTokens} bonus tokens with this purchase!
-                  </p>
-                  <Button 
-                    className="w-full gap-2" 
-                    onClick={handleStripeCheckout}
-                    disabled={createCheckout.isPending || !stripeConfigured}
-                  >
-                    <CreditCard className="h-4 w-4" />
-                    {createCheckout.isPending ? 'Processing...' : 'Checkout with Card'}
-                  </Button>
-                </div>
+                ) : (
+                  <StripeCardCheckoutForm
+                    total={total}
+                    bonusTokens={bonusTokens}
+                    onSuccess={handleCardCheckoutSuccess}
+                    onError={handleCardCheckoutError}
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="tokens" className="space-y-4">
@@ -278,7 +286,8 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                     </AlertDescription>
                   </Alert>
                 ) : null}
-                <div className="space-y-2">
+                
+                <div className="space-y-4">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Your balance:</span>
                     <span className="font-medium flex items-center gap-1">
@@ -286,13 +295,24 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                       {tokenBalance} tokens
                     </span>
                   </div>
+
+                  <BuyerDetailsFields
+                    name={tokenName}
+                    phoneNumber={tokenPhone}
+                    notes={tokenNotes}
+                    onNameChange={setTokenName}
+                    onPhoneNumberChange={setTokenPhone}
+                    onNotesChange={setTokenNotes}
+                    errors={tokenErrors}
+                  />
+
                   <Button 
                     className="w-full gap-2" 
                     onClick={handleTokenCheckout}
-                    disabled={!isAuthenticated || !hasEnoughTokens || spendTokens.isPending}
+                    disabled={!isAuthenticated || !hasEnoughTokens || spendTokens.isPending || savePurchaseOrder.isPending}
                   >
                     <Coins className="h-4 w-4" />
-                    {spendTokens.isPending ? 'Processing...' : `Pay ${totalInTokens} Tokens`}
+                    {spendTokens.isPending || savePurchaseOrder.isPending ? 'Processing...' : `Pay ${totalInTokens} Tokens`}
                   </Button>
                 </div>
               </TabsContent>

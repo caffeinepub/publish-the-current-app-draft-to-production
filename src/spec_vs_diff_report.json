@@ -1,34 +1,56 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T05:51:42.478Z",
-  "summary": "REQ-1 appears partially implemented: the document title, Layout fallback site name, and LoadingScreen text were updated to \"3Docarinas\". However, the diff summary does not provide enough evidence to confirm that *all* other public-facing pages/areas (e.g., homepage hero, footer) have no remaining \"Ocarina\" strings. Additionally, Layout includes a new dynamic favicon-update behavior that is outside the requested renaming/relabeling scope.",
+  "generatedAt": "2026-02-16T07:48:35.467Z",
+  "summary": "The diff adds a new admin Payment Settings section UI and a state migration for a new Stripe config shape, and updates checkout UI availability logic to depend on active Stripe mode. However, the diff summary does not provide enough evidence that the backend now fully persists the new Stripe settings with admin-only read/write enforcement, nor that Stripe session creation uses the active mode’s corresponding secret key.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "No other visible UI strings on the public-facing pages refer to the old app name (manual spot-check: header, footer, loading screen, and homepage hero area).",
-      "reason": "While the header fallback text and loading screen text were updated, the diff summary does not show changes (or a search/removal) in other public-facing UI areas like the homepage hero or footer, so it cannot be confirmed that no remaining \"Ocarina\" strings exist outside the shown files.",
+      "id": "REQ-2",
+      "requirement": "Implement backend persistence for Stripe payment settings (test key, live key, allowed countries if supported, active mode) with admin-only updates and admin-only reads of secrets, persisted in stable state across upgrades.",
+      "reason": "Although a migration to a new stripeConfig shape was added, the provided backend/main.mo diff snippet is truncated before showing any stable variables, admin-guarded getter/setter methods, or authorization errors for non-admins. No evidence is shown that secrets are admin-only readable or that updates are restricted to admins.",
       "evidence": [
-        "frontend/src/components/Layout.tsx (truncated)",
-        "frontend-file-summaries.txt (truncated)"
+        "backend/main.mo",
+        "backend/migration.mo"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Update backend Stripe integration so checkout/session creation uses the active Stripe mode and corresponding secret key automatically; treat checkout as not configured when the active mode key is missing; token checkout unchanged; admin vs non-admin error messaging preserved.",
+      "reason": "Frontend availability logic was updated to depend on activeMode/hasTestKey/hasLiveKey, but the diff summary contains no evidence in backend/main.mo (or Stripe-related modules) that session creation selects the secret key based on active mode or enforces “not configured” behavior when the active key is missing.",
+      "evidence": [
+        "backend/main.mo",
+        "frontend/src/components/CartDrawer.tsx"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Add/adjust React Query hooks and frontend types to support restored Stripe payment settings (test key, live key, active mode, allowed countries if applicable), ensuring the admin Payment Settings UI loads current settings and saves updates successfully with appropriate query invalidation/refresh.",
+      "reason": "PaymentSettingsSection uses new hooks (useGetStripeAdminConfig/useSetStripeSecretKey/useSetStripeActiveMode), and useQueries.ts is modified, but the useQueries.ts content shown is truncated and does not include the actual hook implementations or query invalidation behavior. Also, PaymentSettingsSection does not show any allowed-countries UI or wiring in the visible portion of the file.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/components/admin/PaymentSettingsSection.tsx"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Dynamic favicon update based on branding icon (removes existing favicon links and injects a new one via useEffect).",
-      "reason": "The BuildRequest constrained changes to renaming/relabeling and explicitly said not to introduce new features; favicon manipulation is new behavior not required to rename app text.",
+      "description": "Legacy Stripe configuration dialog flow retained/introduced (“Configure Stripe (Legacy)”) with separate hooks (useSetStripeConfiguration/useGetStripeConfigurationAdmin/useIsStripeConfigured).",
+      "reason": "The BuildRequest focuses on restoring the Admin > Payments > Payment Settings UI with test/live keys + mode toggle and using that configuration for checkout. A separate legacy configuration dialog is not requested in the requirements.",
       "evidence": [
-        "frontend/src/components/Layout.tsx (truncated)"
+        "frontend/src/components/StripeConfigDialog.tsx"
       ]
     }
   ],
-  "confidence": 0.66,
+  "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/index.html",
-    "frontend/src/components/Layout.tsx",
-    "frontend/src/components/LoadingScreen.tsx",
+    "frontend/src/components/CartDrawer.tsx",
+    "frontend/src/components/StripeConfigDialog.tsx",
+    "frontend/src/components/admin/PaymentSettingsSection.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AdminPage.tsx",
     "project_state.json"
   ]
 }

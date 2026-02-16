@@ -1,40 +1,90 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T05:51:42.481Z",
+  "generatedAt": "2026-02-16T07:48:35.470Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 5,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Update all user-facing app name text on the public webpage from the current ocarina-branded wording (e.g., \"Ocarina Learning & Community Platform\", \"Ocarina Learning\", \"Ocarina Hub\") to \"3Docarinas\" (exact capitalization).",
+        "summary": "Restore the Admin > Payments > Payment Settings UI so it visibly shows configurable options (not an empty section), including inputs for Stripe Test Secret Key and Stripe Live Secret Key plus a Test/Live mode toggle, and a clear Save/Update action.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/index.html",
-          "frontend/src/components/Layout.tsx",
-          "frontend/src/components/LoadingScreen.tsx"
+          "frontend/src/components/admin/PaymentSettingsSection.tsx",
+          "frontend/src/pages/AdminPage.tsx",
+          "frontend/src/components/StripeConfigDialog.tsx"
         ],
         "matchedFiles": [
-          "frontend/index.html",
-          "frontend/src/components/Layout.tsx",
-          "frontend/src/components/LoadingScreen.tsx"
+          "frontend/src/components/admin/PaymentSettingsSection.tsx",
+          "frontend/src/pages/AdminPage.tsx",
+          "frontend/src/components/StripeConfigDialog.tsx"
         ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Implement backend persistence for the Stripe payment settings by storing: test secret key, live secret key, allowed countries (if still supported), and the active mode (test|live) in the backend canister, and enforce admin-only updates and admin-only reads of secrets.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Update the backend Stripe integration so checkout/session creation uses the active Stripe mode and corresponding secret key automatically, and update the frontend checkout availability logic to reflect whether the currently selected mode is configured.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/CartDrawer.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/CartDrawer.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Add/adjust React Query hooks and frontend types to support the restored Stripe payment settings (test key, live key, active mode, and any existing fields such as allowed countries), and ensure the admin Payment Settings UI reads current settings and saves updates successfully.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/admin/PaymentSettingsSection.tsx",
+          "frontend/src/backend.d.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/admin/PaymentSettingsSection.tsx",
+          "frontend/src/backend.d.ts"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "If the Stripe configuration state shape changes in a way that would break existing persisted state, add a conditional migration in backend/migration.mo to map the previous Stripe configuration into the new structure with a safe default (e.g., set both test/live keys from the prior single key and default mode to test), without breaking existing order data.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/index.html",
-    "frontend/src/components/Layout.tsx",
-    "frontend/src/components/LoadingScreen.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/CartDrawer.tsx",
+    "frontend/src/components/StripeConfigDialog.tsx",
+    "frontend/src/components/admin/PaymentSettingsSection.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AdminPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

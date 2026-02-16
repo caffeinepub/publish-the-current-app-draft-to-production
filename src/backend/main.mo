@@ -1,12 +1,12 @@
 import Principal "mo:core/Principal";
+import Text "mo:core/Text";
 import List "mo:core/List";
 import Map "mo:core/Map";
 import Nat "mo:core/Nat";
 import Iter "mo:core/Iter";
-import Text "mo:core/Text";
-import Order "mo:core/Order";
-import Time "mo:core/Time";
 import Array "mo:core/Array";
+import Time "mo:core/Time";
+import Order "mo:core/Order";
 import Storage "blob-storage/Storage";
 import AccessControl "authorization/access-control";
 import Stripe "stripe/stripe";
@@ -14,10 +14,10 @@ import OutCall "http-outcalls/outcall";
 import MixinStorage "blob-storage/Mixin";
 import Token "token";
 import Runtime "mo:core/Runtime";
-
+import Migration "migration";
 
 // Use data migration (stateful actor)
-
+(with migration = Migration.run)
 actor {
   include MixinStorage();
 
@@ -200,18 +200,54 @@ actor {
   let tutorials = Map.empty<Text, Tutorial>();
   let communityPosts = Map.empty<Text, CommunityPost>();
   let storeProducts = Map.empty<Text, Product>();
-  let orders = Map.empty<Text, Order>();
   let userProfiles = Map.empty<Principal, UserProfile>();
   let streamedContent = Map.empty<Text, StreamedContent>();
   let tutorialCompletions = Map.empty<Principal, Map.Map<Text, Bool>>();
   let aiFeedbackStorage = Map.empty<Text, [AIFeedback]>();
   let stripeSessionOwners = Map.empty<Text, Principal>();
 
+  // NEW in phase 2: Orders with buyer details
+  type BuyerDetails = {
+    name : Text;
+    phoneNumber : Text;
+    notes : Text;
+  };
+
+  public type EnhancedOrder = {
+    id : Text;
+    user : Principal;
+    products : [OrderedProduct];
+    total : Nat;
+    status : OrderStatus;
+    createdAt : Time.Time;
+    buyerDetails : BuyerDetails;
+    paymentType : {
+      #card;
+      #token;
+    };
+  };
+
+  let orders = Map.empty<Text, EnhancedOrder>();
+
   // AI Chat Tutor State - Per-user chat histories
   let userChatHistories = Map.empty<Principal, List.List<ChatMessage>>();
 
-  // Stripe configuration state (persistent)
-  var stripeConfiguration : ?Stripe.StripeConfiguration = null;
+  // ===== Stripe Configuration (Persistent) =====
+
+  public type StripeMode = {
+    #test;
+    #live;
+  };
+
+  public type InternalStripeConfiguration = {
+    testSecretKey : Text;
+    liveSecretKey : Text;
+    allowedCountries : [Text];
+    activeMode : StripeMode;
+  };
+
+  // Stripe config state
+  var stripeConfig : ?InternalStripeConfiguration = null;
 
   // ===== Access Control Functions (Required) =====
 
@@ -427,32 +463,124 @@ actor {
     };
   };
 
-  // ===== Stripe Integration (Required) =====
+  // ===== Stripe Integration (Updated Persistence) =====
 
-  public query func isStripeConfigured() : async Bool {
-    stripeConfiguration != null;
+  public type PublicStripeConfig = {
+    allowedCountries : [Text];
+    activeMode : StripeMode;
+    hasTestKey : Bool;
+    hasLiveKey : Bool;
   };
 
-  public shared ({ caller }) func setStripeConfiguration(config : Stripe.StripeConfiguration) : async () {
+  // Set secret keys (admin only)
+  public shared ({ caller }) func setStripeSecretKey(mode : StripeMode, secretKey : Text) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can perform this action");
+      Runtime.trap("Unauthorized: Only admins can set Stripe key");
     };
-    stripeConfiguration := ?config;
+
+    switch (stripeConfig) {
+      case (null) {
+        stripeConfig := ?{
+          testSecretKey = if (mode == #test) { secretKey } else { "" };
+          liveSecretKey = if (mode == #live) { secretKey } else { "" };
+          allowedCountries = [];
+          activeMode = mode;
+        };
+      };
+      case (?config) {
+        stripeConfig := ?{
+          config with
+          testSecretKey = if (mode == #test) { secretKey } else { config.testSecretKey };
+          liveSecretKey = if (mode == #live) { secretKey } else { config.liveSecretKey };
+        };
+      };
+    };
   };
 
-  func getStripeConfiguration() : Stripe.StripeConfiguration {
-    switch (stripeConfiguration) {
+  // Set active mode (test/live)
+  public shared ({ caller }) func setStripeActiveMode(mode : StripeMode) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can set Stripe mode");
+    };
+
+    switch (stripeConfig) {
       case (null) { Runtime.trap("Stripe needs to be first configured") };
-      case (?value) { value };
+      case (?config) {
+        stripeConfig := ?{ config with activeMode = mode };
+      };
     };
   };
 
-  public query func transform(input : OutCall.TransformationInput) : async OutCall.TransformationOutput {
+  // Get public config (no secrets)
+  public query func getStripePublicConfig() : async ?PublicStripeConfig {
+    switch (stripeConfig) {
+      case (null) { null };
+      case (?config) {
+        ?{
+          allowedCountries = config.allowedCountries;
+          activeMode = config.activeMode;
+          hasTestKey = config.testSecretKey != "";
+          hasLiveKey = config.liveSecretKey != "";
+        };
+      };
+    };
+  };
+
+  // Get config (admin only, includes secrets)
+  public query ({ caller }) func getStripeAdminConfig() : async InternalStripeConfiguration {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can fetch Stripe config");
+    };
+    switch (stripeConfig) {
+      case (null) { Runtime.trap("Stripe needs to be first configured") };
+      case (?config) { config };
+    };
+  };
+
+  func getSecretKey(mode : StripeMode) : Text {
+    switch (stripeConfig) {
+      case (null) { Runtime.trap("Stripe needs to be first configured") };
+      case (?config) {
+        if (mode == #test) {
+          config.testSecretKey;
+        } else {
+          config.liveSecretKey;
+        };
+      };
+    };
+  };
+
+  // Helper function to convert InternalStripeConfiguration to Stripe.StripeConfiguration
+  func toStripeConfig(mode : StripeMode) : Stripe.StripeConfiguration {
+    {
+      secretKey = getSecretKey(mode);
+      allowedCountries = getAllowedCountries(mode);
+    };
+  };
+
+  // Helper function to get allowed countries based on mode
+  func getAllowedCountries(_mode : StripeMode) : [Text] {
+    switch (stripeConfig) {
+      case (null) { [] };
+      case (?config) { config.allowedCountries };
+    };
+  };
+
+  // Check out with current active config
+  func getActiveStripeConfig() : Stripe.StripeConfiguration {
+    let activeMode = switch (stripeConfig) {
+      case (null) { #test };
+      case (?config) { config.activeMode };
+    };
+    toStripeConfig(activeMode);
+  };
+
+  // Create Stripe checkout session
+  public query ({ caller }) func transform(input : OutCall.TransformationInput) : async OutCall.TransformationOutput {
     OutCall.transform(input);
   };
 
   public shared ({ caller }) func getStripeSessionStatus(sessionId : Text) : async Stripe.StripeSessionStatus {
-    // Authorization: Only session owner or admin can check session status
     switch (stripeSessionOwners.get(sessionId)) {
       case (null) { Runtime.trap("Session not found") };
       case (?owner) {
@@ -462,26 +590,108 @@ actor {
       };
     };
 
-    await Stripe.getSessionStatus(getStripeConfiguration(), sessionId, transform);
+    await Stripe.getSessionStatus(getActiveStripeConfig(), sessionId, transform);
   };
 
   public shared ({ caller }) func createCheckoutSession(items : [Stripe.ShoppingItem], successUrl : Text, cancelUrl : Text) : async Text {
-    // Authorization: Only authenticated users can create checkout sessions
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can create checkout sessions");
     };
 
-    let sessionId = await Stripe.createCheckoutSession(getStripeConfiguration(), caller, items, successUrl, cancelUrl, transform);
+    let sessionId = await Stripe.createCheckoutSession(getActiveStripeConfig(), caller, items, successUrl, cancelUrl, transform);
 
-    // Store session ownership for authorization checks
     stripeSessionOwners.add(sessionId, caller);
-
     sessionId;
+  };
+
+  // Order system
+  public shared ({ caller }) func savePurchaseOrder(
+    products : [OrderedProduct],
+    total : Nat,
+    buyerDetails : BuyerDetails,
+    paymentType : { #card; #token }
+  ) : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save orders");
+    };
+
+    let orderId = "ORDER-" # Time.now().toText();
+    let newOrder : EnhancedOrder = {
+      id = orderId;
+      user = caller;
+      products;
+      total;
+      status = #completed; // Set to completed by default.
+      createdAt = Time.now();
+      buyerDetails;
+      paymentType;
+    };
+
+    orders.add(orderId, newOrder);
+    orderId;
+  };
+
+  public query ({ caller }) func getAllOrdersAdmin() : async [EnhancedOrder] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can get all orders");
+    };
+
+    orders.values().toArray();
+  };
+
+  public query ({ caller }) func getUserOrders() : async [EnhancedOrder] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view orders");
+    };
+
+    let iter = orders.values();
+    let filtered = iter.filter(
+      func(order) {
+        order.user == caller;
+      }
+    );
+    filtered.toArray();
   };
 
   // ===== Public Store Browsing =====
 
   public query func listProducts() : async [Product] {
     storeProducts.values().toArray();
+  };
+
+  // ===== Helper Functions (compatible public interface) =====
+
+  public query func isStripeConfigured() : async Bool {
+    switch (stripeConfig) {
+      case (null) { false };
+      case (?_) { true };
+    };
+  };
+
+  public shared ({ caller }) func setStripeConfiguration(config : Stripe.StripeConfiguration) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+
+    // Backwards compatibility: Always create both secrets
+    let newConfig : InternalStripeConfiguration = {
+      testSecretKey = config.secretKey;
+      liveSecretKey = config.secretKey;
+      allowedCountries = config.allowedCountries;
+      activeMode = #test;
+    };
+
+    stripeConfig := ?newConfig;
+  };
+
+  func getStripeConfiguration() : Stripe.StripeConfiguration {
+    getActiveStripeConfig();
+  };
+
+  public query ({ caller }) func getStripeConfigurationAdmin() : async Stripe.StripeConfiguration {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can fetch Stripe config");
+    };
+    getStripeConfiguration();
   };
 };

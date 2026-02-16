@@ -1,18 +1,36 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "App with Stripe payments; restore Stripe settings panel in admin and update app webpage/name to 3Docarinas.",
-  "architectural_notes": [],
+  "summary": "New project",
+  "architectural_notes": [
+    "Admin payment settings must persist Stripe test/live keys and selected mode in the backend canister; checkout reads these settings automatically."
+  ],
   "known_issues": [
-    "Stripe payments configuration panel is not showing in the draft (Version 40)"
+    "Admin payment settings page shows no options (Stripe keys/mode) though it worked in an earlier version; needs restoration."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-update-all-user-facing-app-name-text-on-the-public-webpage-from-the-current-ocarina-branded-wording-e-g-ocarina-learning-community-platform-ocarina-learning-ocarina-hub-to-3docarinas-exact-capitalization",
-      "title": "Update all user-facing app name text on the public webpage from the current ocarina-branded wording (e.g., \"Ocarina Learning & Community Platform\", \"Ocarina Learning\", \"Ocarina Hub\") to \"3Docarinas\" (exact capitalization).",
+      "id": "feature-restore-the-admin-payments-payment-settings-ui-so-it-visibly-shows-configurable-options-not-an-empty-section-including-inputs-for-stripe-test-secret-key-and-stripe-live-secret-key-plus-a-test-live-mode-toggle-and-a-clear-save-update-action",
+      "title": "Restore the Admin > Payments > Payment Settings UI so it visibly shows configurable options (not an empty section), including inputs for Stripe Test Secret Key and Stripe Live Secret Key plus a Test/Live mode toggle, and a clear Save/Update action.",
       "reqIds": [
         "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-backend-stripe-integration-so-checkout-session-creation-uses-the-active-stripe-mode-and-corresponding-secret-key-automatically-and-update-the-frontend-checkout-availability-logic-to-reflect-whether-the-currently-selected-mode-is-configured",
+      "title": "Update the backend Stripe integration so checkout/session creation uses the active Stripe mode and corresponding secret key automatically, and update the frontend checkout availability logic to reflect whether the currently selected mode is configured.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-adjust-react-query-hooks-and-frontend-types-to-support-the-restored-stripe-payment-settings-test-key-live-key-active-mode-and-any-existing-fields-such-as-allowed-countries-and-ensure-the-admin-payment-settings-ui-reads-current-settings-and-saves-updates-successfully",
+      "title": "Add/adjust React Query hooks and frontend types to support the restored Stripe payment settings (test key, live key, active mode, and any existing fields such as allowed countries), and ensure the admin Payment Settings UI reads current settings and saves updates successfully.",
+      "reqIds": [
+        "REQ-4"
       ],
       "version": 1
     }
@@ -20,18 +38,28 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Restore Stripe payments settings/configuration panel in the admin area (visible in draft)",
+      "summary": "Restore admin payment settings: Stripe test key + live key fields, test/live mode toggle, and persist settings in backend canister for checkout usage",
       "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Implement backend persistence for the Stripe payment settings by storing: test secret key, live secret key, allowed countries (if still supported), and the active mode (test|live) in the backend canister, and enforce admin-only updates and admin-only reads of secrets.",
+      "reqIds": [
+        "REQ-2"
+      ],
       "status": "pending"
     },
     {
-      "id": "AR-2",
-      "summary": "Change app webpage/name from “Ocarina Learning and Community” to “3Docarinas”",
-      "reqIds": [],
+      "id": "AR-6",
+      "summary": "If the Stripe configuration state shape changes in a way that would break existing persisted state, add a conditional migration in backend/migration.mo to map the previous Stripe configuration into the new structure with a safe default (e.g., set both test/live keys from the prior single key and default mode to test), without breaking existing order data.",
+      "reqIds": [
+        "REQ-5"
+      ],
       "status": "pending"
     }
   ],
-  "projectName": "3Docarinas",
+  "projectName": "Restore admin payment settings with Stripe test/live keys, mode toggle, and backend persistence",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

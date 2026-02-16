@@ -21,12 +21,43 @@ export interface Branding {
   'slogan' : string,
   'siteName' : string,
 }
+export interface BuyerDetails {
+  'name' : string,
+  'notes' : string,
+  'phoneNumber' : string,
+}
+export interface EnhancedOrder {
+  'id' : string,
+  'status' : OrderStatus,
+  'total' : bigint,
+  'buyerDetails' : BuyerDetails,
+  'createdAt' : Time,
+  'user' : Principal,
+  'paymentType' : { 'token' : null } |
+    { 'card' : null },
+  'products' : Array<OrderedProduct>,
+}
 export type ExternalBlob = Uint8Array;
+export interface InternalStripeConfiguration {
+  'allowedCountries' : Array<string>,
+  'testSecretKey' : string,
+  'liveSecretKey' : string,
+  'activeMode' : StripeMode,
+}
 export interface MediaFile {
   'contentType' : string,
   'blob' : ExternalBlob,
   'name' : string,
   'uploader' : Principal,
+}
+export type OrderStatus = { 'cancelled' : null } |
+  { 'pending' : null } |
+  { 'completed' : null };
+export interface OrderedProduct {
+  'id' : string,
+  'name' : string,
+  'quantity' : bigint,
+  'price' : bigint,
 }
 export interface Product {
   'id' : string,
@@ -35,6 +66,12 @@ export interface Product {
   'description' : string,
   'price' : bigint,
   'images' : Array<MediaFile>,
+}
+export interface PublicStripeConfig {
+  'hasLiveKey' : boolean,
+  'hasTestKey' : boolean,
+  'allowedCountries' : Array<string>,
+  'activeMode' : StripeMode,
 }
 export type Role = { 'admin' : null } |
   { 'user' : null } |
@@ -55,6 +92,8 @@ export interface StripeConfiguration {
   'allowedCountries' : Array<string>,
   'secretKey' : string,
 }
+export type StripeMode = { 'live' : null } |
+  { 'test' : null };
 export type StripeSessionStatus = {
     'completed' : { 'userPrincipal' : [] | [string], 'response' : string }
   } |
@@ -135,12 +174,17 @@ export interface _SERVICE {
     string
   >,
   'deleteProduct' : ActorMethod<[string], undefined>,
+  'getAllOrdersAdmin' : ActorMethod<[], Array<EnhancedOrder>>,
   'getBlobById' : ActorMethod<[string], MediaFile>,
   'getBranding' : ActorMethod<[], Branding>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getStoreBanner' : ActorMethod<[], StoreBanner>,
+  'getStripeAdminConfig' : ActorMethod<[], InternalStripeConfiguration>,
+  'getStripeConfigurationAdmin' : ActorMethod<[], StripeConfiguration>,
+  'getStripePublicConfig' : ActorMethod<[], [] | [PublicStripeConfig]>,
   'getStripeSessionStatus' : ActorMethod<[string], StripeSessionStatus>,
+  'getUserOrders' : ActorMethod<[], Array<EnhancedOrder>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'initializeAccessControl' : ActorMethod<[], undefined>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
@@ -148,7 +192,19 @@ export interface _SERVICE {
   'listMedia' : ActorMethod<[], Array<MediaFile>>,
   'listProducts' : ActorMethod<[], Array<Product>>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'savePurchaseOrder' : ActorMethod<
+    [
+      Array<OrderedProduct>,
+      bigint,
+      BuyerDetails,
+      { 'token' : null } |
+        { 'card' : null },
+    ],
+    string
+  >,
+  'setStripeActiveMode' : ActorMethod<[StripeMode], undefined>,
   'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
+  'setStripeSecretKey' : ActorMethod<[StripeMode, string], undefined>,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
   'updateBranding' : ActorMethod<[Branding], undefined>,
   'updateProduct' : ActorMethod<[Product], undefined>,

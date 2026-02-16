@@ -14,18 +14,27 @@ export class ExternalBlob {
     static fromBytes(blob: Uint8Array<ArrayBuffer>): ExternalBlob;
     withUploadProgress(onProgress: (percentage: number) => void): ExternalBlob;
 }
-export interface Product {
+export interface EnhancedOrder {
     id: string;
-    inventory: bigint;
-    name: string;
-    description: string;
-    price: bigint;
-    images: Array<MediaFile>;
+    status: OrderStatus;
+    total: bigint;
+    buyerDetails: BuyerDetails;
+    createdAt: Time;
+    user: Principal;
+    paymentType: Variant_token_card;
+    products: Array<OrderedProduct>;
 }
-export interface StoreBanner {
-    title: string;
-    bannerImage?: ExternalBlob;
-    subtitle: string;
+export interface UserProfile {
+    bio: string;
+    username: string;
+    purchasedContent: Array<string>;
+    createdAt: Time;
+    role: Role;
+    aiInteractionHistory: Array<AIInteraction>;
+    uploadedContent: Array<MediaFile>;
+    tokenBalance: bigint;
+    aiAssistantEnabled: boolean;
+    transactionHistory: Array<TokenTransaction>;
 }
 export interface TransformationOutput {
     status: bigint;
@@ -33,35 +42,11 @@ export interface TransformationOutput {
     headers: Array<http_header>;
 }
 export type Time = bigint;
-export interface MediaFile {
-    contentType: string;
-    blob: ExternalBlob;
+export interface OrderedProduct {
+    id: string;
     name: string;
-    uploader: Principal;
-}
-export interface TokenTransaction {
-    to?: Principal;
-    transactionType: Variant_earn_mint_spend_transfer;
-    from?: Principal;
-    description: string;
-    timestamp: Time;
-    amount: bigint;
-}
-export interface http_header {
-    value: string;
-    name: string;
-}
-export interface http_request_result {
-    status: bigint;
-    body: Uint8Array;
-    headers: Array<http_header>;
-}
-export interface ShoppingItem {
-    productName: string;
-    currency: string;
     quantity: bigint;
-    priceInCents: bigint;
-    productDescription: string;
+    price: bigint;
 }
 export interface TransformationInput {
     context: Uint8Array;
@@ -88,28 +73,85 @@ export interface StripeConfiguration {
     allowedCountries: Array<string>;
     secretKey: string;
 }
+export interface StoreBanner {
+    title: string;
+    bannerImage?: ExternalBlob;
+    subtitle: string;
+}
+export interface MediaFile {
+    contentType: string;
+    blob: ExternalBlob;
+    name: string;
+    uploader: Principal;
+}
+export interface PublicStripeConfig {
+    hasLiveKey: boolean;
+    hasTestKey: boolean;
+    allowedCountries: Array<string>;
+    activeMode: StripeMode;
+}
+export interface TokenTransaction {
+    to?: Principal;
+    transactionType: Variant_earn_mint_spend_transfer;
+    from?: Principal;
+    description: string;
+    timestamp: Time;
+    amount: bigint;
+}
+export interface BuyerDetails {
+    name: string;
+    notes: string;
+    phoneNumber: string;
+}
+export interface http_header {
+    value: string;
+    name: string;
+}
+export interface http_request_result {
+    status: bigint;
+    body: Uint8Array;
+    headers: Array<http_header>;
+}
+export interface ShoppingItem {
+    productName: string;
+    currency: string;
+    quantity: bigint;
+    priceInCents: bigint;
+    productDescription: string;
+}
+export interface InternalStripeConfiguration {
+    allowedCountries: Array<string>;
+    testSecretKey: string;
+    liveSecretKey: string;
+    activeMode: StripeMode;
+}
 export interface Branding {
     icon?: ExternalBlob;
     logo?: ExternalBlob;
     slogan: string;
     siteName: string;
 }
-export interface UserProfile {
-    bio: string;
-    username: string;
-    purchasedContent: Array<string>;
-    createdAt: Time;
-    role: Role;
-    aiInteractionHistory: Array<AIInteraction>;
-    uploadedContent: Array<MediaFile>;
-    tokenBalance: bigint;
-    aiAssistantEnabled: boolean;
-    transactionHistory: Array<TokenTransaction>;
+export interface Product {
+    id: string;
+    inventory: bigint;
+    name: string;
+    description: string;
+    price: bigint;
+    images: Array<MediaFile>;
 }
-export enum UserRole {
+export enum OrderStatus {
+    cancelled = "cancelled",
+    pending = "pending",
+    completed = "completed"
+}
+export enum Role {
     admin = "admin",
     user = "user",
     guest = "guest"
+}
+export enum StripeMode {
+    live = "live",
+    test = "test"
 }
 export enum Variant_earn_mint_spend_transfer {
     earn = "earn",
@@ -117,17 +159,26 @@ export enum Variant_earn_mint_spend_transfer {
     spend = "spend",
     transfer = "transfer"
 }
+export enum Variant_token_card {
+    token = "token",
+    card = "card"
+}
 export interface backendInterface {
     addProduct(product: Product): Promise<string>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createCheckoutSession(items: Array<ShoppingItem>, successUrl: string, cancelUrl: string): Promise<string>;
     deleteProduct(productId: string): Promise<void>;
+    getAllOrdersAdmin(): Promise<Array<EnhancedOrder>>;
     getBlobById(id: string): Promise<MediaFile>;
     getBranding(): Promise<Branding>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getStoreBanner(): Promise<StoreBanner>;
+    getStripeAdminConfig(): Promise<InternalStripeConfiguration>;
+    getStripeConfigurationAdmin(): Promise<StripeConfiguration>;
+    getStripePublicConfig(): Promise<PublicStripeConfig | null>;
     getStripeSessionStatus(sessionId: string): Promise<StripeSessionStatus>;
+    getUserOrders(): Promise<Array<EnhancedOrder>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     initializeAccessControl(): Promise<void>;
     isCallerAdmin(): Promise<boolean>;
@@ -135,7 +186,10 @@ export interface backendInterface {
     listMedia(): Promise<Array<MediaFile>>;
     listProducts(): Promise<Array<Product>>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    savePurchaseOrder(products: Array<OrderedProduct>, total: bigint, buyerDetails: BuyerDetails, paymentType: Variant_token_card): Promise<string>;
+    setStripeActiveMode(mode: StripeMode): Promise<void>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
+    setStripeSecretKey(mode: StripeMode, secretKey: string): Promise<void>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
     updateBranding(newBranding: Branding): Promise<void>;
     updateProduct(product: Product): Promise<void>;

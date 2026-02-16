@@ -2,12 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-all-user-facing-app-name-text-on-the-public-webpage-from-the-current-ocarina-branded-wording-e-g-ocarina-learning-community-platform-ocarina-learning-ocarina-hub-to-3docarinas-exact-capitalization",
-      "featureTitle": "Update all user-facing app name text on the public webpage from the current ocarina-branded wording (e.g., \"Ocarina Learning & Community Platform\", \"Ocarina Learning\", \"Ocarina Hub\") to \"3Docarinas\" (exact capitalization).",
+      "featureId": "feature-restore-the-admin-payments-payment-settings-ui-so-it-visibly-shows-configurable-options-not-an-empty-section-including-inputs-for-stripe-test-secret-key-and-stripe-live-secret-key-plus-a-test-live-mode-toggle-and-a-clear-save-update-action",
+      "featureTitle": "Restore the Admin > Payments > Payment Settings UI so it visibly shows configurable options (not an empty section), including inputs for Stripe Test Secret Key and Stripe Live Secret Key plus a Test/Live mode toggle, and a clear Save/Update action.",
       "files": [
-        "frontend/index.html",
-        "frontend/src/components/Layout.tsx",
-        "frontend/src/components/LoadingScreen.tsx"
+        "frontend/src/components/StripeConfigDialog.tsx",
+        "frontend/src/components/admin/PaymentSettingsSection.tsx",
+        "frontend/src/pages/AdminPage.tsx"
       ],
       "components": [
         "authorization@3.0.0",
@@ -22,6 +22,52 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-backend-stripe-integration-so-checkout-session-creation-uses-the-active-stripe-mode-and-corresponding-secret-key-automatically-and-update-the-frontend-checkout-availability-logic-to-reflect-whether-the-currently-selected-mode-is-configured",
+      "featureTitle": "Update the backend Stripe integration so checkout/session creation uses the active Stripe mode and corresponding secret key automatically, and update the frontend checkout availability logic to reflect whether the currently selected mode is configured.",
+      "files": [
+        "frontend/src/components/CartDrawer.tsx",
+        "frontend/src/hooks/useQueries.ts"
+      ],
+      "components": [
+        "authorization@3.0.0",
+        "blob-storage@4.0.0",
+        "stripe@3.0.0",
+        "http-outcalls@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-adjust-react-query-hooks-and-frontend-types-to-support-the-restored-stripe-payment-settings-test-key-live-key-active-mode-and-any-existing-fields-such-as-allowed-countries-and-ensure-the-admin-payment-settings-ui-reads-current-settings-and-saves-updates-successfully",
+      "featureTitle": "Add/adjust React Query hooks and frontend types to support the restored Stripe payment settings (test key, live key, active mode, and any existing fields such as allowed countries), and ensure the admin Payment Settings UI reads current settings and saves updates successfully.",
+      "files": [
+        "frontend/src/components/admin/PaymentSettingsSection.tsx",
+        "frontend/src/hooks/useQueries.ts"
+      ],
+      "components": [
+        "authorization@3.0.0",
+        "blob-storage@4.0.0",
+        "stripe@3.0.0",
+        "http-outcalls@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }

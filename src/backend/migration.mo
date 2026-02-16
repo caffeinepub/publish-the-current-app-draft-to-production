@@ -1,24 +1,43 @@
-import Map "mo:core/Map";
-import Stripe "stripe/stripe";
-import Principal "mo:core/Principal";
-
 module {
-  // Redefine types from main.mo (for migration only!)
-  type MediaFile = {
-    name : Text;
-    blob : Blob;
-    contentType : Text;
-    uploader : Principal;
+  type LegacyStripeConfiguration = {
+    secretKey : Text;
+    allowedCountries : [Text];
   };
 
-  // Only use new format with all fields (no migration needed if we keep everything the same).
-  type State = {
-    storeProducts : Map.Map<Text, { id : Text; name : Text; description : Text; price : Nat; inventory : Nat; images : [MediaFile] }>;
-    stripeConfiguration : ?Stripe.StripeConfiguration;
-    stripeSessionOwners : Map.Map<Text, Principal>;
+  type StripeMode = {
+    #test;
+    #live;
   };
 
-  public func run(store : State) : State {
-    store;
+  type InternalStripeConfiguration = {
+    testSecretKey : Text;
+    liveSecretKey : Text;
+    allowedCountries : [Text];
+    activeMode : StripeMode;
+  };
+
+  type OldActor = {
+    stripeConfiguration : ?LegacyStripeConfiguration;
+  };
+
+  type NewActor = {
+    stripeConfig : ?InternalStripeConfiguration;
+  };
+
+  public func run(old : OldActor) : NewActor {
+    let newStripeConfig = switch (old.stripeConfiguration) {
+      case (null) { null };
+      case (?legacy) {
+        ?{
+          testSecretKey = legacy.secretKey;
+          liveSecretKey = legacy.secretKey;
+          allowedCountries = legacy.allowedCountries;
+          activeMode = #test;
+        };
+      };
+    };
+    {
+      stripeConfig = newStripeConfig;
+    };
   };
 };

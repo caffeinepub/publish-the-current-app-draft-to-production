@@ -8,9 +8,14 @@ import type {
   StoreBanner,
   StripeConfiguration,
   ShoppingItem,
-  UserRole
+  EnhancedOrder,
+  OrderedProduct,
+  BuyerDetails,
+  InternalStripeConfiguration,
+  PublicStripeConfig,
+  StripeMode
 } from '../backend';
-import { ExternalBlob } from '../backend';
+import { ExternalBlob, Variant_token_card } from '../backend';
 import type { 
   Tutorial, 
   CommunityPost, 
@@ -257,6 +262,91 @@ export function useIsStripeConfigured() {
   });
 }
 
+export function useGetStripePublicConfig() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<PublicStripeConfig | null>({
+    queryKey: ['stripePublicConfig'],
+    queryFn: async () => {
+      if (!actor) return null;
+      return actor.getStripePublicConfig();
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 0,
+  });
+}
+
+export function useGetStripeAdminConfig() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<InternalStripeConfiguration | null>({
+    queryKey: ['stripeAdminConfig'],
+    queryFn: async () => {
+      if (!actor) return null;
+      try {
+        return await actor.getStripeAdminConfig();
+      } catch (error) {
+        return null;
+      }
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 0,
+  });
+}
+
+export function useSetStripeSecretKey() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ mode, secretKey }: { mode: StripeMode, secretKey: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.setStripeSecretKey(mode, secretKey);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stripeConfigured'] });
+      queryClient.invalidateQueries({ queryKey: ['stripeAdminConfig'] });
+      queryClient.invalidateQueries({ queryKey: ['stripePublicConfig'] });
+    },
+  });
+}
+
+export function useSetStripeActiveMode() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (mode: StripeMode) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.setStripeActiveMode(mode);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stripeConfigured'] });
+      queryClient.invalidateQueries({ queryKey: ['stripeAdminConfig'] });
+      queryClient.invalidateQueries({ queryKey: ['stripePublicConfig'] });
+    },
+  });
+}
+
+// Legacy compatibility
+export function useGetStripeConfigurationAdmin() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<StripeConfiguration | null>({
+    queryKey: ['stripeConfigurationAdmin'],
+    queryFn: async () => {
+      if (!actor) return null;
+      try {
+        return await actor.getStripeConfigurationAdmin();
+      } catch (error) {
+        return null;
+      }
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 0,
+  });
+}
+
 export function useSetStripeConfiguration() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -268,6 +358,9 @@ export function useSetStripeConfiguration() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stripeConfigured'] });
+      queryClient.invalidateQueries({ queryKey: ['stripeConfigurationAdmin'] });
+      queryClient.invalidateQueries({ queryKey: ['stripeAdminConfig'] });
+      queryClient.invalidateQueries({ queryKey: ['stripePublicConfig'] });
     },
   });
 }
@@ -281,6 +374,60 @@ export function useCreateCheckoutSession() {
       const result = await actor.createCheckoutSession(items, successUrl, cancelUrl);
       return result;
     },
+  });
+}
+
+// ===== Order Queries =====
+
+export function useSavePurchaseOrder() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      products, 
+      total, 
+      buyerDetails, 
+      paymentType 
+    }: { 
+      products: OrderedProduct[], 
+      total: bigint, 
+      buyerDetails: BuyerDetails, 
+      paymentType: Variant_token_card 
+    }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.savePurchaseOrder(products, total, buyerDetails, paymentType);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['userOrders'] });
+    },
+  });
+}
+
+export function useGetAllOrdersAdmin() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<EnhancedOrder[]>({
+    queryKey: ['adminOrders'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllOrdersAdmin();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetUserOrders() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<EnhancedOrder[]>({
+    queryKey: ['userOrders'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getUserOrders();
+    },
+    enabled: !!actor && !isFetching,
   });
 }
 

@@ -46,13 +46,39 @@ export const ShoppingItem = IDL.Record({
   'priceInCents' : IDL.Nat,
   'productDescription' : IDL.Text,
 });
+export const OrderStatus = IDL.Variant({
+  'cancelled' : IDL.Null,
+  'pending' : IDL.Null,
+  'completed' : IDL.Null,
+});
+export const BuyerDetails = IDL.Record({
+  'name' : IDL.Text,
+  'notes' : IDL.Text,
+  'phoneNumber' : IDL.Text,
+});
+export const Time = IDL.Int;
+export const OrderedProduct = IDL.Record({
+  'id' : IDL.Text,
+  'name' : IDL.Text,
+  'quantity' : IDL.Nat,
+  'price' : IDL.Nat,
+});
+export const EnhancedOrder = IDL.Record({
+  'id' : IDL.Text,
+  'status' : OrderStatus,
+  'total' : IDL.Nat,
+  'buyerDetails' : BuyerDetails,
+  'createdAt' : Time,
+  'user' : IDL.Principal,
+  'paymentType' : IDL.Variant({ 'token' : IDL.Null, 'card' : IDL.Null }),
+  'products' : IDL.Vec(OrderedProduct),
+});
 export const Branding = IDL.Record({
   'icon' : IDL.Opt(ExternalBlob),
   'logo' : IDL.Opt(ExternalBlob),
   'slogan' : IDL.Text,
   'siteName' : IDL.Text,
 });
-export const Time = IDL.Int;
 export const Role = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
@@ -93,16 +119,29 @@ export const StoreBanner = IDL.Record({
   'bannerImage' : IDL.Opt(ExternalBlob),
   'subtitle' : IDL.Text,
 });
+export const StripeMode = IDL.Variant({ 'live' : IDL.Null, 'test' : IDL.Null });
+export const InternalStripeConfiguration = IDL.Record({
+  'allowedCountries' : IDL.Vec(IDL.Text),
+  'testSecretKey' : IDL.Text,
+  'liveSecretKey' : IDL.Text,
+  'activeMode' : StripeMode,
+});
+export const StripeConfiguration = IDL.Record({
+  'allowedCountries' : IDL.Vec(IDL.Text),
+  'secretKey' : IDL.Text,
+});
+export const PublicStripeConfig = IDL.Record({
+  'hasLiveKey' : IDL.Bool,
+  'hasTestKey' : IDL.Bool,
+  'allowedCountries' : IDL.Vec(IDL.Text),
+  'activeMode' : StripeMode,
+});
 export const StripeSessionStatus = IDL.Variant({
   'completed' : IDL.Record({
     'userPrincipal' : IDL.Opt(IDL.Text),
     'response' : IDL.Text,
   }),
   'failed' : IDL.Record({ 'error' : IDL.Text }),
-});
-export const StripeConfiguration = IDL.Record({
-  'allowedCountries' : IDL.Vec(IDL.Text),
-  'secretKey' : IDL.Text,
 });
 export const http_header = IDL.Record({
   'value' : IDL.Text,
@@ -158,12 +197,29 @@ export const idlService = IDL.Service({
       [],
     ),
   'deleteProduct' : IDL.Func([IDL.Text], [], []),
+  'getAllOrdersAdmin' : IDL.Func([], [IDL.Vec(EnhancedOrder)], ['query']),
   'getBlobById' : IDL.Func([IDL.Text], [MediaFile], ['query']),
   'getBranding' : IDL.Func([], [Branding], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getStoreBanner' : IDL.Func([], [StoreBanner], ['query']),
+  'getStripeAdminConfig' : IDL.Func(
+      [],
+      [InternalStripeConfiguration],
+      ['query'],
+    ),
+  'getStripeConfigurationAdmin' : IDL.Func(
+      [],
+      [StripeConfiguration],
+      ['query'],
+    ),
+  'getStripePublicConfig' : IDL.Func(
+      [],
+      [IDL.Opt(PublicStripeConfig)],
+      ['query'],
+    ),
   'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
+  'getUserOrders' : IDL.Func([], [IDL.Vec(EnhancedOrder)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -175,7 +231,19 @@ export const idlService = IDL.Service({
   'listMedia' : IDL.Func([], [IDL.Vec(MediaFile)], ['query']),
   'listProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'savePurchaseOrder' : IDL.Func(
+      [
+        IDL.Vec(OrderedProduct),
+        IDL.Nat,
+        BuyerDetails,
+        IDL.Variant({ 'token' : IDL.Null, 'card' : IDL.Null }),
+      ],
+      [IDL.Text],
+      [],
+    ),
+  'setStripeActiveMode' : IDL.Func([StripeMode], [], []),
   'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
+  'setStripeSecretKey' : IDL.Func([StripeMode, IDL.Text], [], []),
   'transform' : IDL.Func(
       [TransformationInput],
       [TransformationOutput],
@@ -228,13 +296,39 @@ export const idlFactory = ({ IDL }) => {
     'priceInCents' : IDL.Nat,
     'productDescription' : IDL.Text,
   });
+  const OrderStatus = IDL.Variant({
+    'cancelled' : IDL.Null,
+    'pending' : IDL.Null,
+    'completed' : IDL.Null,
+  });
+  const BuyerDetails = IDL.Record({
+    'name' : IDL.Text,
+    'notes' : IDL.Text,
+    'phoneNumber' : IDL.Text,
+  });
+  const Time = IDL.Int;
+  const OrderedProduct = IDL.Record({
+    'id' : IDL.Text,
+    'name' : IDL.Text,
+    'quantity' : IDL.Nat,
+    'price' : IDL.Nat,
+  });
+  const EnhancedOrder = IDL.Record({
+    'id' : IDL.Text,
+    'status' : OrderStatus,
+    'total' : IDL.Nat,
+    'buyerDetails' : BuyerDetails,
+    'createdAt' : Time,
+    'user' : IDL.Principal,
+    'paymentType' : IDL.Variant({ 'token' : IDL.Null, 'card' : IDL.Null }),
+    'products' : IDL.Vec(OrderedProduct),
+  });
   const Branding = IDL.Record({
     'icon' : IDL.Opt(ExternalBlob),
     'logo' : IDL.Opt(ExternalBlob),
     'slogan' : IDL.Text,
     'siteName' : IDL.Text,
   });
-  const Time = IDL.Int;
   const Role = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
@@ -275,16 +369,29 @@ export const idlFactory = ({ IDL }) => {
     'bannerImage' : IDL.Opt(ExternalBlob),
     'subtitle' : IDL.Text,
   });
+  const StripeMode = IDL.Variant({ 'live' : IDL.Null, 'test' : IDL.Null });
+  const InternalStripeConfiguration = IDL.Record({
+    'allowedCountries' : IDL.Vec(IDL.Text),
+    'testSecretKey' : IDL.Text,
+    'liveSecretKey' : IDL.Text,
+    'activeMode' : StripeMode,
+  });
+  const StripeConfiguration = IDL.Record({
+    'allowedCountries' : IDL.Vec(IDL.Text),
+    'secretKey' : IDL.Text,
+  });
+  const PublicStripeConfig = IDL.Record({
+    'hasLiveKey' : IDL.Bool,
+    'hasTestKey' : IDL.Bool,
+    'allowedCountries' : IDL.Vec(IDL.Text),
+    'activeMode' : StripeMode,
+  });
   const StripeSessionStatus = IDL.Variant({
     'completed' : IDL.Record({
       'userPrincipal' : IDL.Opt(IDL.Text),
       'response' : IDL.Text,
     }),
     'failed' : IDL.Record({ 'error' : IDL.Text }),
-  });
-  const StripeConfiguration = IDL.Record({
-    'allowedCountries' : IDL.Vec(IDL.Text),
-    'secretKey' : IDL.Text,
   });
   const http_header = IDL.Record({ 'value' : IDL.Text, 'name' : IDL.Text });
   const http_request_result = IDL.Record({
@@ -337,12 +444,29 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'deleteProduct' : IDL.Func([IDL.Text], [], []),
+    'getAllOrdersAdmin' : IDL.Func([], [IDL.Vec(EnhancedOrder)], ['query']),
     'getBlobById' : IDL.Func([IDL.Text], [MediaFile], ['query']),
     'getBranding' : IDL.Func([], [Branding], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getStoreBanner' : IDL.Func([], [StoreBanner], ['query']),
+    'getStripeAdminConfig' : IDL.Func(
+        [],
+        [InternalStripeConfiguration],
+        ['query'],
+      ),
+    'getStripeConfigurationAdmin' : IDL.Func(
+        [],
+        [StripeConfiguration],
+        ['query'],
+      ),
+    'getStripePublicConfig' : IDL.Func(
+        [],
+        [IDL.Opt(PublicStripeConfig)],
+        ['query'],
+      ),
     'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
+    'getUserOrders' : IDL.Func([], [IDL.Vec(EnhancedOrder)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
@@ -354,7 +478,19 @@ export const idlFactory = ({ IDL }) => {
     'listMedia' : IDL.Func([], [IDL.Vec(MediaFile)], ['query']),
     'listProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'savePurchaseOrder' : IDL.Func(
+        [
+          IDL.Vec(OrderedProduct),
+          IDL.Nat,
+          BuyerDetails,
+          IDL.Variant({ 'token' : IDL.Null, 'card' : IDL.Null }),
+        ],
+        [IDL.Text],
+        [],
+      ),
+    'setStripeActiveMode' : IDL.Func([StripeMode], [], []),
     'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
+    'setStripeSecretKey' : IDL.Func([StripeMode, IDL.Text], [], []),
     'transform' : IDL.Func(
         [TransformationInput],
         [TransformationOutput],

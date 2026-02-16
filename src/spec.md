@@ -1,12 +1,14 @@
 # Specification
 
 ## Summary
-**Goal:** Rename the public-facing app/webpage name to **3Docarinas** across all visible UI text and the browser title.
+**Goal:** Restore and persist admin Stripe payment settings (test/live keys and active mode) so checkout automatically uses the configured mode and key.
 
 **Planned changes:**
-- Update the HTML document title in `frontend/index.html` to "3Docarinas".
-- Replace navbar/site name fallback text in `frontend/src/components/Layout.tsx` with "3Docarinas" when no `branding.siteName` is set.
-- Update loading screen copy in `frontend/src/components/LoadingScreen.tsx` to "Loading 3Docarinas...".
-- Spot-check and replace any remaining public-page visible references to the old ocarina-branded app name (header, footer, homepage hero area).
+- Restore the Admin > Payments > Payment Settings UI to show Stripe Test Secret Key, Stripe Live Secret Key, a Test/Live mode toggle, and a Save/Update action with English validation and saving states.
+- Add backend canister persistence for Stripe settings (test key, live key, active mode, and any existing fields such as allowed countries), with stable storage across upgrades.
+- Enforce admin-only access: only admins can update settings and only admins can read secret key material back.
+- Update Stripe session/checkout creation to automatically use the active mode’s secret key; treat card checkout as unavailable when the active mode is not configured (token checkout unchanged).
+- Add/adjust React Query hooks and frontend types to load current settings, save updates, and invalidate/refresh relevant queries after saving.
+- If the persisted Stripe configuration shape changed, add a safe backend migration to map prior configuration into the new structure without breaking existing stored data.
 
-**User-visible outcome:** The public webpage consistently displays the app name as **3Docarinas** (including the browser tab title and loading screen), with no remaining "Ocarina" name references.
+**User-visible outcome:** Admins can configure Stripe payment settings (test/live keys and active mode) from the Payments tab and save them; card checkout availability and Stripe session creation reflect the active mode’s configuration automatically.

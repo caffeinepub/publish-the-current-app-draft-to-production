@@ -1,32 +1,80 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Rename public-facing app text to 3Docarinas",
+  "title": "Restore admin Stripe payment settings UI with test/live keys and mode-aware configuration checks",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Replace all public, user-facing app name strings from ocarina-branded wording to \"3Docarinas\" (exact capitalization), including document title, navbar fallback, and loading screen.",
+      "summary": "Restore Admin > Payments > Payment Settings UI with Stripe test/live secret key inputs, Test/Live toggle, and a clear Save/Update action with English validation.",
       "acceptanceCriteria": [
-        "The HTML document title in frontend/index.html is \"3Docarinas\" (no remaining \"Ocarina Learning & Community Platform\").",
-        "The navbar/site name fallback text rendered by frontend/src/components/Layout.tsx shows \"3Docarinas\" when no branding.siteName is set (no remaining \"Ocarina Learning\").",
-        "The loading screen text in frontend/src/components/LoadingScreen.tsx reads \"Loading 3Docarinas...\" (no remaining \"Loading Ocarina Hub...\").",
-        "No other visible UI strings on the public-facing pages refer to the old app name (manual spot-check: header, footer, loading screen, and homepage hero area)."
+        "When an admin opens the Payments tab, they can immediately find and interact with payment settings without needing hidden/undiscoverable actions.",
+        "The UI includes fields labeled in English for: Stripe Test Secret Key, Stripe Live Secret Key, and a Test/Live mode toggle.",
+        "A Save/Update action is present and enabled/disabled appropriately (e.g., during save).",
+        "User-facing validation messages are in English (e.g., missing key)."
       ],
       "file_operations": [
         {
-          "path": "frontend/index.html",
-          "operation": "modify",
-          "description": "Update the HTML <title> from the old ocarina-branded name to exactly \"3Docarinas\" per acceptance criteria."
+          "path": "frontend/src/components/admin/PaymentSettingsSection.tsx",
+          "operation": "create",
+          "description": "Create an always-visible Admin Payment Settings section (no hidden dialog-only UI) that shows inputs for Stripe Test Secret Key and Stripe Live Secret Key (password/masked), a Test/Live mode toggle, and a Save/Update button with loading/disabled states and English validation/error text. Use the selected authorization + stripe-related backend capabilities via React Query hooks to read current settings and persist updates. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/Layout.tsx",
+          "path": "frontend/src/pages/AdminPage.tsx",
           "operation": "modify",
-          "description": "Change the site name fallback text (used when branding.siteName is unset) from \"Ocarina Learning\" to exactly \"3Docarinas\" so header/footer render the new name by default."
+          "description": "Wire the new PaymentSettingsSection into the Payments tab content so the Payments tab is not empty and the settings are immediately discoverable. Remove or demote the old dialog-only interaction as needed so admins can interact with settings without extra hidden steps. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/LoadingScreen.tsx",
+          "path": "frontend/src/components/StripeConfigDialog.tsx",
           "operation": "modify",
-          "description": "Update the loading message string from \"Loading Ocarina Hub...\" to exactly \"Loading 3Docarinas...\"."
+          "description": "Refactor or deprecate the legacy single-key StripeConfigDialog flow so it no longer conflicts with the restored Payment Settings UI (test/live keys + mode). If kept, update its copy and behavior to reflect the new settings shape (no longer implying a single secret key). Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Update frontend checkout availability logic to treat card payments as available only when the active Stripe mode is configured.",
+      "acceptanceCriteria": [
+        "If mode is set to Test, Stripe session creation uses the Test secret key; if mode is Live, it uses the Live secret key.",
+        "If the active mode’s key is missing, checkout is treated as not configured and the UI shows card payments as unavailable.",
+        "Existing token checkout continues to work unchanged.",
+        "Admin-facing error messaging remains informative; non-admins see a generic failure message as currently implemented."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add/adjust React Query hooks to read a public Stripe configuration status (including activeMode + hasTestKey/hasLiveKey) and expose a derived 'card payments available' signal for the currently active mode. Use these hooks to support mode-aware configuration checks without exposing secret key material to non-admin views. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/CartDrawer.tsx",
+          "operation": "modify",
+          "description": "Replace the current card-payment availability gating (currently based on isStripeConfigured()) with a mode-aware check driven by the public Stripe config: if the active mode’s key is missing, show card payments unavailable messaging; keep token checkout unchanged; preserve existing admin vs non-admin error messaging behavior. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Add/adjust frontend types and React Query hooks for Stripe payment settings (test key, live key, active mode, allowed countries if present) and ensure the admin Payment Settings UI loads and saves correctly.",
+      "acceptanceCriteria": [
+        "Admin Payment Settings screen loads current Stripe settings (excluding full secret values if masking is required) and reflects the currently active mode.",
+        "Saving settings invalidates and refreshes relevant queries (e.g., configured status, admin config query), and the UI reflects the new values.",
+        "No changes are made to immutable frontend paths listed in SYSTEM_CONTEXT."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Implement admin-only Stripe settings hooks using existing backend actor methods declared in frontend/src/backend.d.ts (admin config read + set secret key per mode + set active mode; include allowed countries support if still applicable). Ensure mutations invalidate/refresh the relevant queries (admin config + public config/configured status) so the UI reflects updates immediately. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/admin/PaymentSettingsSection.tsx",
+          "operation": "modify",
+          "description": "Connect the Payment Settings UI to the new/updated hooks so it loads current admin settings (masking secrets appropriately), allows updating either/both keys and the active mode, and on save triggers query invalidations and shows English success/failure messaging. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/backend.d.ts",
+          "operation": "modify",
+          "description": "If needed, update or regenerate frontend type definitions to match backend interface changes for Stripe admin/public config (test/live keys + active mode + allowed countries). Ensure the admin UI and hooks compile against the updated types."
         }
       ]
     }

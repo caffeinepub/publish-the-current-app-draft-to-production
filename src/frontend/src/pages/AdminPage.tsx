@@ -3,22 +3,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useIsCallerAdmin } from '../hooks/useQueries';
-import { Shield, Settings, Image, Video, BookOpen, Package, CreditCard, Coins } from 'lucide-react';
+import { Shield, Settings, Image, Video, BookOpen, Package, CreditCard, Coins, ShoppingBag } from 'lucide-react';
 import BrandingSection from '../components/admin/BrandingSection';
 import MediaLibraryManager from '../components/MediaLibraryManager';
 import AddTutorialDialog from '../components/AddTutorialDialog';
 import AddProductDialog from '../components/AddProductDialog';
-import StripeConfigDialog from '../components/StripeConfigDialog';
 import MintTokensDialog from '../components/MintTokensDialog';
 import RestoreProductsDialog from '../components/RestoreProductsDialog';
 import PageSettingsSection from '../components/admin/PageSettingsSection';
+import OrdersSection from '../components/admin/OrdersSection';
+import PaymentSettingsSection from '../components/admin/PaymentSettingsSection';
 
 export default function AdminPage() {
   const { identity } = useInternetIdentity();
   const { data: isAdmin, isLoading: adminLoading } = useIsCallerAdmin();
   const [showAddTutorial, setShowAddTutorial] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [showStripeConfig, setShowStripeConfig] = useState(false);
   const [showMintTokens, setShowMintTokens] = useState(false);
   const [showRestoreProducts, setShowRestoreProducts] = useState(false);
 
@@ -80,55 +80,62 @@ export default function AdminPage() {
         <p className="text-muted-foreground mt-2">Manage your platform settings and content</p>
       </div>
 
-      <Tabs defaultValue="branding" className="w-full">
-        <TabsList className="grid w-full grid-cols-7 h-auto">
-          <TabsTrigger value="branding" className="gap-2 flex-col py-3">
+      <Tabs defaultValue="branding" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+          <TabsTrigger value="branding" className="gap-2">
             <Settings className="h-4 w-4" />
-            <span className="text-xs">Branding</span>
+            <span className="hidden sm:inline">Branding</span>
           </TabsTrigger>
-          <TabsTrigger value="pages" className="gap-2 flex-col py-3">
+          <TabsTrigger value="pages" className="gap-2">
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline">Pages</span>
+          </TabsTrigger>
+          <TabsTrigger value="media" className="gap-2">
             <Image className="h-4 w-4" />
-            <span className="text-xs">Pages</span>
+            <span className="hidden sm:inline">Media</span>
           </TabsTrigger>
-          <TabsTrigger value="media" className="gap-2 flex-col py-3">
+          <TabsTrigger value="tutorials" className="gap-2">
             <Video className="h-4 w-4" />
-            <span className="text-xs">Media</span>
+            <span className="hidden sm:inline">Tutorials</span>
           </TabsTrigger>
-          <TabsTrigger value="tutorials" className="gap-2 flex-col py-3">
-            <BookOpen className="h-4 w-4" />
-            <span className="text-xs">Tutorials</span>
-          </TabsTrigger>
-          <TabsTrigger value="products" className="gap-2 flex-col py-3">
+          <TabsTrigger value="products" className="gap-2">
             <Package className="h-4 w-4" />
-            <span className="text-xs">Products</span>
+            <span className="hidden sm:inline">Products</span>
           </TabsTrigger>
-          <TabsTrigger value="payments" className="gap-2 flex-col py-3">
+          <TabsTrigger value="orders" className="gap-2">
+            <ShoppingBag className="h-4 w-4" />
+            <span className="hidden sm:inline">Orders</span>
+          </TabsTrigger>
+          <TabsTrigger value="payments" className="gap-2">
             <CreditCard className="h-4 w-4" />
-            <span className="text-xs">Payments</span>
+            <span className="hidden sm:inline">Payments</span>
           </TabsTrigger>
-          <TabsTrigger value="tokens" className="gap-2 flex-col py-3">
+          <TabsTrigger value="tokens" className="gap-2">
             <Coins className="h-4 w-4" />
-            <span className="text-xs">Tokens</span>
+            <span className="hidden sm:inline">Tokens</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="branding" className="space-y-6 mt-6">
+        <TabsContent value="branding">
           <BrandingSection />
         </TabsContent>
 
-        <TabsContent value="pages" className="space-y-6 mt-6">
+        <TabsContent value="pages">
           <PageSettingsSection />
         </TabsContent>
 
-        <TabsContent value="media" className="space-y-6 mt-6">
+        <TabsContent value="media">
           <MediaLibraryManager />
         </TabsContent>
 
-        <TabsContent value="tutorials" className="space-y-6 mt-6">
+        <TabsContent value="tutorials">
           <Card>
             <CardHeader>
-              <CardTitle>Tutorial Management</CardTitle>
-              <CardDescription>Add and manage video tutorials</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5" />
+                Tutorials
+              </CardTitle>
+              <CardDescription>Manage learning content and tutorials</CardDescription>
             </CardHeader>
             <CardContent>
               <AddTutorialDialog open={showAddTutorial} onOpenChange={setShowAddTutorial} />
@@ -136,36 +143,40 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="products" className="space-y-6 mt-6">
+        <TabsContent value="products">
           <Card>
             <CardHeader>
-              <CardTitle>Product Management</CardTitle>
-              <CardDescription>Add and manage store products</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Products
+              </CardTitle>
+              <CardDescription>Manage store products and inventory</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <AddProductDialog open={showAddProduct} onOpenChange={setShowAddProduct} />
-              <RestoreProductsDialog open={showRestoreProducts} onOpenChange={setShowRestoreProducts} />
+              <div className="flex gap-2">
+                <AddProductDialog open={showAddProduct} onOpenChange={setShowAddProduct} />
+                <RestoreProductsDialog open={showRestoreProducts} onOpenChange={setShowRestoreProducts} />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="payments" className="space-y-6 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Configuration</CardTitle>
-              <CardDescription>Configure Stripe payment settings</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <StripeConfigDialog open={showStripeConfig} onOpenChange={setShowStripeConfig} />
-            </CardContent>
-          </Card>
+        <TabsContent value="orders">
+          <OrdersSection />
         </TabsContent>
 
-        <TabsContent value="tokens" className="space-y-6 mt-6">
+        <TabsContent value="payments">
+          <PaymentSettingsSection />
+        </TabsContent>
+
+        <TabsContent value="tokens">
           <Card>
             <CardHeader>
-              <CardTitle>Token Management</CardTitle>
-              <CardDescription>Mint and distribute tokens to users</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Coins className="h-5 w-5" />
+                Token Management
+              </CardTitle>
+              <CardDescription>Mint and distribute platform tokens</CardDescription>
             </CardHeader>
             <CardContent>
               <MintTokensDialog open={showMintTokens} onOpenChange={setShowMintTokens} />
