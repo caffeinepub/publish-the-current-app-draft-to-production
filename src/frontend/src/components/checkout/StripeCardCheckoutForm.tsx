@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CreditCard, AlertCircle } from 'lucide-react';
 import BuyerDetailsFields from './BuyerDetailsFields';
-import { useSavePurchaseOrder } from '../../hooks/useQueries';
+import { useCreateCheckoutSession, useGetCallerUserProfile } from '../../hooks/useQueries';
 import { useCartStore } from '../../lib/cartStore';
 import { toast } from 'sonner';
-import { Variant_token_card, type OrderedProduct, type BuyerDetails } from '../../backend';
+import { type ShoppingItem } from '../../backend';
+import { saveCheckoutContext } from '../../utils/stripeCheckoutContext';
 
 interface StripeCardCheckoutFormProps {
   total: number;
@@ -22,14 +23,13 @@ export default function StripeCardCheckoutForm({
   onError,
 }: StripeCardCheckoutFormProps) {
   const cart = useCartStore(state => state.cart);
-  const clearCart = useCartStore(state => state.clearCart);
-  const savePurchaseOrder = useSavePurchaseOrder();
+  const createCheckoutSession = useCreateCheckoutSession();
+  const { data: userProfile } = useGetCallerUserProfile();
 
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<{ name?: string; phoneNumber?: string }>({});
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const validateFields = (): boolean => {
     const newErrors: { name?: string; phoneNumber?: string } = {};
@@ -55,47 +55,62 @@ export default function StripeCardCheckoutForm({
       return;
     }
 
-    setIsProcessing(true);
-
     try {
-      // Prepare order data
-      const products: OrderedProduct[] = cart.map(item => ({
-        id: item.product.id,
-        name: item.product.name,
-        price: item.product.price,
-        quantity: BigInt(item.quantity),
-      }));
+      // Calculate token discount (5% per token)
+      const tokenBalance = userProfile?.tokenBalance ? Number(userProfile.tokenBalance) : 0;
+      const maxDiscountPercent = Math.min(tokenBalance * 5, 100); // Cap at 100%
+      const discountAmount = Math.floor(total * (maxDiscountPercent / 100));
+      const finalTotal = Math.max(total - discountAmount, 0);
 
-      const buyerDetails: BuyerDetails = {
-        name: name.trim(),
-        phoneNumber: phoneNumber.trim(),
-        notes: notes.trim(),
-      };
-
-      // Save the order
-      await savePurchaseOrder.mutateAsync({
-        products,
-        total: BigInt(total),
-        buyerDetails,
-        paymentType: Variant_token_card.card,
+      // Save checkout context for after redirect
+      saveCheckoutContext({
+        buyerDetails: {
+          name: name.trim(),
+          phoneNumber: phoneNumber.trim(),
+          notes: notes.trim(),
+        },
+        products: cart.map(item => ({
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+        })),
+        total,
+        discountAmount,
+        finalTotal,
+        bonusTokens,
       });
 
-      // Clear cart and show success
-      clearCart();
-      toast.success(
-        <div className="space-y-1">
-          <p className="font-semibold">Order placed successfully!</p>
-          <p className="text-sm">You earned {bonusTokens} bonus tokens!</p>
-        </div>
-      );
-      onSuccess();
+      // Prepare shopping items for Stripe
+      const items: ShoppingItem[] = cart.map(item => ({
+        productName: item.product.name,
+        productDescription: item.product.description,
+        priceInCents: BigInt(Math.floor(Number(item.product.price) * (1 - maxDiscountPercent / 100))),
+        quantity: BigInt(item.quantity),
+        currency: 'usd',
+      }));
+
+      // Create checkout session
+      const baseUrl = `${window.location.protocol}//${window.location.host}`;
+      const successUrl = `${baseUrl}/payment-success`;
+      const cancelUrl = `${baseUrl}/payment-failure`;
+
+      const session = await createCheckoutSession.mutateAsync({
+        items,
+        successUrl,
+        cancelUrl,
+      });
+
+      if (!session?.url) {
+        throw new Error('Stripe session missing url');
+      }
+
+      // Redirect to Stripe Checkout (never use router navigation)
+      window.location.href = session.url;
     } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to process order';
+      const errorMessage = error?.message || 'Failed to start checkout';
       onError(errorMessage);
-      toast.error(errorMessage);
-      console.error('Order error:', error);
-    } finally {
-      setIsProcessing(false);
+      console.error('Checkout error:', error);
     }
   };
 
@@ -122,18 +137,18 @@ export default function StripeCardCheckoutForm({
         <Button 
           type="submit" 
           className="w-full gap-2" 
-          disabled={isProcessing}
+          disabled={createCheckoutSession.isPending}
         >
           <CreditCard className="h-4 w-4" />
-          {isProcessing ? 'Processing Order...' : `Complete Purchase - $${(total / 100).toFixed(2)}`}
+          {createCheckoutSession.isPending ? 'Starting Checkout...' : `Proceed to Payment - $${(total / 100).toFixed(2)}`}
         </Button>
       </div>
 
-      {savePurchaseOrder.isError && (
+      {createCheckoutSession.isError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Failed to process order. Please try again or contact support.
+            Failed to start checkout. Please try again or contact support.
           </AlertDescription>
         </Alert>
       )}

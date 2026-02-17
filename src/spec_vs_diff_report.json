@@ -1,56 +1,51 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-16T07:48:35.467Z",
-  "summary": "The diff adds a new admin Payment Settings section UI and a state migration for a new Stripe config shape, and updates checkout UI availability logic to depend on active Stripe mode. However, the diff summary does not provide enough evidence that the backend now fully persists the new Stripe settings with admin-only read/write enforcement, nor that Stripe session creation uses the active mode’s corresponding secret key.",
+  "generatedAt": "2026-02-17T00:48:02.472Z",
+  "summary": "Frontend adds a Stripe Checkout redirect flow from the cart, persists buyer/cart context across the redirect, and introduces success/failure pages that verify Stripe session status before creating an order. Admin payments UI is updated to load/save Stripe settings. Backend changes are present but truncated, so key security/persistence requirements around Stripe secret keys and mode-based key usage cannot be fully verified from the provided diff summary.",
   "missing_requirements": [
     {
-      "id": "REQ-2",
-      "requirement": "Implement backend persistence for Stripe payment settings (test key, live key, allowed countries if supported, active mode) with admin-only updates and admin-only reads of secrets, persisted in stable state across upgrades.",
-      "reason": "Although a migration to a new stripeConfig shape was added, the provided backend/main.mo diff snippet is truncated before showing any stable variables, admin-guarded getter/setter methods, or authorization errors for non-admins. No evidence is shown that secrets are admin-only readable or that updates are restricted to admins.",
-      "evidence": [
-        "backend/main.mo",
-        "backend/migration.mo"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "requirement": "Update backend Stripe integration so checkout/session creation uses the active Stripe mode and corresponding secret key automatically; treat checkout as not configured when the active mode key is missing; token checkout unchanged; admin vs non-admin error messaging preserved.",
-      "reason": "Frontend availability logic was updated to depend on activeMode/hasTestKey/hasLiveKey, but the diff summary contains no evidence in backend/main.mo (or Stripe-related modules) that session creation selects the secret key based on active mode or enforces “not configured” behavior when the active key is missing.",
-      "evidence": [
-        "backend/main.mo",
-        "frontend/src/components/CartDrawer.tsx"
-      ]
-    },
-    {
       "id": "REQ-4",
-      "requirement": "Add/adjust React Query hooks and frontend types to support restored Stripe payment settings (test key, live key, active mode, allowed countries if applicable), ensuring the admin Payment Settings UI loads current settings and saves updates successfully with appropriate query invalidation/refresh.",
-      "reason": "PaymentSettingsSection uses new hooks (useGetStripeAdminConfig/useSetStripeSecretKey/useSetStripeActiveMode), and useQueries.ts is modified, but the useQueries.ts content shown is truncated and does not include the actual hook implementations or query invalidation behavior. Also, PaymentSettingsSection does not show any allowed-countries UI or wiring in the visible portion of the file.",
+      "requirement": "Stripe settings (test/live secret keys and active mode) must persist in the backend canister across reloads/upgrades, and non-admin users must not be able to read Stripe secret keys from any endpoint; checkout session creation must use the secret key for the active mode.",
+      "reason": "The diff shows the Admin Payments UI and mentions hooks for admin/public config, but the backend implementation is truncated and does not provide explicit evidence of stable persistence across upgrades, admin-only access control for secrets, or that checkout session creation selects the active-mode secret key.",
       "evidence": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/components/admin/PaymentSettingsSection.tsx"
+        "backend/main.mo (truncated)",
+        "frontend/src/components/admin/PaymentSettingsSection.tsx",
+        "frontend/src/components/CartDrawer.tsx",
+        "frontend/src/hooks/useQueries.ts (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "requirement": "Bonus/earned tokens must be recorded only after Stripe payment success is verified and the order is created.",
+      "reason": "Frontend calculates and displays `bonusTokens` and shows a success toast, but there is no explicit evidence in the diff summary that the backend actually records/awards the bonus tokens only after verified Stripe success (this may exist in truncated backend or in savePurchaseOrder, but it is not shown).",
+      "evidence": [
+        "frontend/src/pages/PaymentSuccessPage.tsx (truncated)",
+        "backend/main.mo (truncated)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Legacy Stripe configuration dialog flow retained/introduced (“Configure Stripe (Legacy)”) with separate hooks (useSetStripeConfiguration/useGetStripeConfigurationAdmin/useIsStripeConfigured).",
-      "reason": "The BuildRequest focuses on restoring the Admin > Payments > Payment Settings UI with test/live keys + mode toggle and using that configuration for checkout. A separate legacy configuration dialog is not requested in the requirements.",
+      "description": "AI chat tutor behavior/content changes (local AI response generation and chat UI logic changes).",
+      "reason": "Not requested by any of REQ-1 through REQ-5; unrelated to Stripe checkout, order creation timing, Stripe settings persistence, or token discount/earning requirements.",
       "evidence": [
-        "frontend/src/components/StripeConfigDialog.tsx"
+        "frontend/src/components/AIChatTutor.tsx"
       ]
     }
   ],
   "confidence": 0.62,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/components/AIChatTutor.tsx",
     "frontend/src/components/CartDrawer.tsx",
-    "frontend/src/components/StripeConfigDialog.tsx",
     "frontend/src/components/admin/PaymentSettingsSection.tsx",
+    "frontend/src/components/checkout/StripeCardCheckoutForm.tsx",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/AdminPage.tsx",
+    "frontend/src/pages/PaymentFailurePage.tsx",
+    "frontend/src/pages/PaymentSuccessPage.tsx",
+    "frontend/src/utils/stripeCheckoutContext.ts",
     "project_state.json"
   ]
 }

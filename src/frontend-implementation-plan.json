@@ -1,80 +1,137 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Restore admin Stripe payment settings UI with test/live keys and mode-aware configuration checks",
+  "title": "Stripe card checkout with verified success order creation",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Restore Admin > Payments > Payment Settings UI with Stripe test/live secret key inputs, Test/Live toggle, and a clear Save/Update action with English validation.",
+      "summary": "Start Stripe Checkout from cart (create session via backend and redirect), with clear error state when Stripe is not configured.",
       "acceptanceCriteria": [
-        "When an admin opens the Payments tab, they can immediately find and interact with payment settings without needing hidden/undiscoverable actions.",
-        "The UI includes fields labeled in English for: Stripe Test Secret Key, Stripe Live Secret Key, and a Test/Live mode toggle.",
-        "A Save/Update action is present and enabled/disabled appropriately (e.g., during save).",
-        "User-facing validation messages are in English (e.g., missing key)."
+        "From the cart drawer, selecting “Card Payment” initiates a Stripe Checkout Session creation via the backend and redirects the browser to Stripe Checkout.",
+        "The card payment path does not call the existing order creation logic as a substitute for payment processing.",
+        "If Stripe is not configured for the active mode, the UI shows an error state and does not attempt to start checkout."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/admin/PaymentSettingsSection.tsx",
-          "operation": "create",
-          "description": "Create an always-visible Admin Payment Settings section (no hidden dialog-only UI) that shows inputs for Stripe Test Secret Key and Stripe Live Secret Key (password/masked), a Test/Live mode toggle, and a Save/Update button with loading/disabled states and English validation/error text. Use the selected authorization + stripe-related backend capabilities via React Query hooks to read current settings and persist updates. Verify the component's usage instructions before implementing."
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Update Stripe checkout hook to (1) JSON-parse the backend createCheckoutSession result into a {id,url} shape, (2) validate non-empty url, and (3) expose a typed hook used by the cart checkout flow. Use the selected stripe component’s frontend guidance for session parsing/redirect behavior; verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/AdminPage.tsx",
+          "path": "frontend/src/components/checkout/StripeCardCheckoutForm.tsx",
           "operation": "modify",
-          "description": "Wire the new PaymentSettingsSection into the Payments tab content so the Payments tab is not empty and the settings are immediately discoverable. Remove or demote the old dialog-only interaction as needed so admins can interact with settings without extra hidden steps. Verify the component's usage instructions before implementing."
+          "description": "Replace the current submit behavior (which directly calls savePurchaseOrder) with: collect buyer details + cart snapshot, call the createCheckoutSession hook, and redirect using window.location.href to the returned Stripe Checkout url (never router navigation). Use the selected stripe component capability for Stripe Checkout session initiation; verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/StripeConfigDialog.tsx",
+          "path": "frontend/src/components/CartDrawer.tsx",
           "operation": "modify",
-          "description": "Refactor or deprecate the legacy single-key StripeConfigDialog flow so it no longer conflicts with the restored Payment Settings UI (test/live keys + mode). If kept, update its copy and behavior to reflect the new settings shape (no longer implying a single secret key). Verify the component's usage instructions before implementing."
+          "description": "Ensure the Card Payment tab only renders/activates Stripe checkout when the active Stripe mode is configured (using existing getStripePublicConfig-based availability logic). When unavailable, keep the existing error state and ensure no checkout attempt occurs."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "On Stripe return, verify the session status before creating a completed order; show failure route for non-success.",
+      "acceptanceCriteria": [
+        "A Stripe-based order is not persisted as completed before the Stripe session is verified as paid/successful.",
+        "On the payment success return route, the frontend reads the Stripe session identifier from the URL and calls the backend to verify session status with Stripe.",
+        "Only after successful verification, the backend persists the order and marks it as completed; failed/canceled/unpaid sessions do not create a completed order.",
+        "The payment failure route is shown when Stripe verification fails or indicates non-success status."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add a Stripe session status helper hook (query or mutation) that calls getStripeSessionStatus(sessionId) and returns the typed StripeSessionStatus variant for use on the success return page. Use the selected stripe component capability for status verification; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/PaymentSuccessPage.tsx",
+          "operation": "modify",
+          "description": "Change PaymentSuccessPage to: (1) read Stripe session identifier from the URL, (2) call backend session-status verification, and (3) only after verification indicates completion, proceed to create the order and then show confirmation UI. If verification fails or is non-success, navigate to /payment-failure (optionally carrying a safe error reason). Use the selected stripe component capability for the success/failure return flow; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/PaymentFailurePage.tsx",
+          "operation": "modify",
+          "description": "Enhance PaymentFailurePage to optionally display a generic failure reason derived from non-sensitive URL/session state (no secrets), and guide the user back to retry checkout from the Store."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Update frontend checkout availability logic to treat card payments as available only when the active Stripe mode is configured.",
+      "summary": "Fix the card checkout form to stop calling savePurchaseOrder on submit; preserve buyer details across Stripe redirect and clear cart only after verified success.",
       "acceptanceCriteria": [
-        "If mode is set to Test, Stripe session creation uses the Test secret key; if mode is Live, it uses the Live secret key.",
-        "If the active mode’s key is missing, checkout is treated as not configured and the UI shows card payments as unavailable.",
-        "Existing token checkout continues to work unchanged.",
-        "Admin-facing error messaging remains informative; non-admins see a generic failure message as currently implemented."
+        "Submitting the card checkout form does not clear the cart immediately and does not show “Order placed successfully!” until after Stripe success verification completes.",
+        "Buyer details entered for card checkout are preserved across the Stripe redirect and are available when creating the order after payment success (e.g., stored in session/local storage or passed safely in the flow).",
+        "After payment success verification completes and the order is created, the cart is cleared and a success toast/confirmation is shown."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/utils/stripeCheckoutContext.ts",
+          "operation": "create",
+          "description": "Create utilities to persist and retrieve a “pending card checkout” context in sessionStorage (buyer details + ordered products snapshot + computed totals/discount metadata). Include helpers to clear the context after completion/failure. Ensure only non-secret, non-sensitive checkout data is stored."
+        },
+        {
+          "path": "frontend/src/components/checkout/StripeCardCheckoutForm.tsx",
           "operation": "modify",
-          "description": "Add/adjust React Query hooks to read a public Stripe configuration status (including activeMode + hasTestKey/hasLiveKey) and expose a derived 'card payments available' signal for the currently active mode. Use these hooks to support mode-aware configuration checks without exposing secret key material to non-admin views. Verify the component's usage instructions before implementing."
+          "description": "On submit: validate buyer details, serialize and store pending checkout context (buyer + cart snapshot + totals), then start Stripe session creation and redirect. Remove any cart clearing and any success toast from this form submit path."
+        },
+        {
+          "path": "frontend/src/pages/PaymentSuccessPage.tsx",
+          "operation": "modify",
+          "description": "After Stripe verification indicates completion: load pending checkout context, call savePurchaseOrder to persist the order as card payment, then clear the cart + clear the pending context, and only then show success toast/confirmation UI. If context is missing/expired, treat as failure and route to /payment-failure."
         },
         {
           "path": "frontend/src/components/CartDrawer.tsx",
           "operation": "modify",
-          "description": "Replace the current card-payment availability gating (currently based on isStripeConfigured()) with a mode-aware check driven by the public Stripe config: if the active mode’s key is missing, show card payments unavailable messaging; keep token checkout unchanged; preserve existing admin vs non-admin error messaging behavior. Verify the component's usage instructions before implementing."
+          "description": "Adjust Card Payment success/error callbacks to reflect the new flow (form no longer places order locally). Ensure drawer closing is driven by redirect initiation (optional) and not by local order placement."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Add/adjust frontend types and React Query hooks for Stripe payment settings (test key, live key, active mode, allowed countries if present) and ensure the admin Payment Settings UI loads and saves correctly.",
+      "summary": "Ensure Admin > Payments UI correctly loads existing Stripe configuration and can update active mode and secret keys without exposing secrets to non-admins.",
       "acceptanceCriteria": [
-        "Admin Payment Settings screen loads current Stripe settings (excluding full secret values if masking is required) and reflects the currently active mode.",
-        "Saving settings invalidates and refreshes relevant queries (e.g., configured status, admin config query), and the UI reflects the new values.",
-        "No changes are made to immutable frontend paths listed in SYSTEM_CONTEXT."
+        "Admin users can view Stripe configuration status (including last-4 masked display) and toggle active mode between Test and Live.",
+        "Admin users can save/update test and/or live secret keys; the keys persist across reloads/upgrades when state is preserved.",
+        "Non-admin users cannot read Stripe secret keys from any endpoint.",
+        "Checkout session creation always uses the secret key corresponding to the currently active mode."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Implement admin-only Stripe settings hooks using existing backend actor methods declared in frontend/src/backend.d.ts (admin config read + set secret key per mode + set active mode; include allowed countries support if still applicable). Ensure mutations invalidate/refresh the relevant queries (admin config + public config/configured status) so the UI reflects updates immediately. Verify the component's usage instructions before implementing."
-        },
-        {
           "path": "frontend/src/components/admin/PaymentSettingsSection.tsx",
           "operation": "modify",
-          "description": "Connect the Payment Settings UI to the new/updated hooks so it loads current admin settings (masking secrets appropriately), allows updating either/both keys and the active mode, and on save triggers query invalidations and shows English success/failure messaging. Verify the component's usage instructions before implementing."
+          "description": "Harden config display and loading: ensure safe last-4 masking (guard against short/empty values), refetch configuration after saves (already) and on mount where needed, and keep inputs blank (do not prefill secrets). This UI must remain admin-only via the existing AdminPage guard."
         },
         {
-          "path": "frontend/src/backend.d.ts",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "If needed, update or regenerate frontend type definitions to match backend interface changes for Stripe admin/public config (test/live keys + active mode + allowed countries). Ensure the admin UI and hooks compile against the updated types."
+          "description": "Ensure Stripe admin config hooks invalidate/refetch relevant queries after updates (admin + public config) so the cart availability check reflects the saved active mode/keys."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Apply automatic token-based discount when preparing Stripe checkout amounts and award bonus/earned tokens only after verified payment success and order creation.",
+      "acceptanceCriteria": [
+        "The Stripe checkout amount reflects any automatic token-based discount rules configured for the app (as described in project state).",
+        "Bonus/earned tokens are recorded only after Stripe payment success is verified and the order is created.",
+        "The Payment Success page reflects the finalized purchase and triggers refresh of token balance/transaction history."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/stripeCheckoutContext.ts",
+          "operation": "modify",
+          "description": "Extend the pending checkout context to store discount breakdown (e.g., discount amount/percent and final charged total) so the success page can reflect the finalized purchase consistently after redirect."
+        },
+        {
+          "path": "frontend/src/components/CartDrawer.tsx",
+          "operation": "modify",
+          "description": "Update the Stripe card payment calculation to apply the app’s automatic token discount rule when determining the Stripe charge total and the ShoppingItem priceInCents values passed into session creation (do not alter token-payment flow). Ensure any displayed totals match the values sent for Stripe checkout."
+        },
+        {
+          "path": "frontend/src/pages/PaymentSuccessPage.tsx",
+          "operation": "modify",
+          "description": "After successful verification + order creation, invalidate/refresh token-related queries (token balance + transaction history + profile), and show a success confirmation that reflects the finalized purchase (including any applied discount and earned bonus tokens). Only show/trigger token-earning effects after the verified-success order creation completes."
         }
       ]
     }

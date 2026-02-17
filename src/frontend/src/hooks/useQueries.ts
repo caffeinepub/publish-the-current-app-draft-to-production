@@ -13,7 +13,8 @@ import type {
   BuyerDetails,
   InternalStripeConfiguration,
   PublicStripeConfig,
-  StripeMode
+  StripeMode,
+  StripeSessionStatus
 } from '../backend';
 import { ExternalBlob, Variant_token_card } from '../backend';
 import type { 
@@ -365,14 +366,36 @@ export function useSetStripeConfiguration() {
   });
 }
 
+export type CheckoutSession = {
+  id: string;
+  url: string;
+};
+
 export function useCreateCheckoutSession() {
   const { actor } = useActor();
 
   return useMutation({
-    mutationFn: async ({ items, successUrl, cancelUrl }: { items: ShoppingItem[], successUrl: string, cancelUrl: string }) => {
+    mutationFn: async ({ items, successUrl, cancelUrl }: { items: ShoppingItem[], successUrl: string, cancelUrl: string }): Promise<CheckoutSession> => {
       if (!actor) throw new Error('Actor not available');
       const result = await actor.createCheckoutSession(items, successUrl, cancelUrl);
-      return result;
+      
+      // JSON parsing is important!
+      const session = JSON.parse(result) as CheckoutSession;
+      if (!session?.url) {
+        throw new Error('Stripe session missing url');
+      }
+      return session;
+    },
+  });
+}
+
+export function useGetStripeSessionStatus() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (sessionId: string): Promise<StripeSessionStatus> => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.getStripeSessionStatus(sessionId);
     },
   });
 }
@@ -401,6 +424,7 @@ export function useSavePurchaseOrder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
       queryClient.invalidateQueries({ queryKey: ['userOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
     },
   });
 }
@@ -658,7 +682,7 @@ export function useSendChatMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (message: string) => {
+    mutationFn: async (message: string): Promise<string> => {
       if (!actor) throw new Error('Actor not available');
       return (actor as any).sendChatMessage(message);
     },
@@ -668,22 +692,7 @@ export function useSendChatMessage() {
   });
 }
 
-export function useSendAIChatResponse() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (response: string) => {
-      if (!actor) throw new Error('Actor not available');
-      return (actor as any).sendAIChatResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chatHistory'] });
-    },
-  });
-}
-
-// ===== Work With Us Application =====
+// ===== Work With Us Applications (not yet in backend) =====
 
 export function useSubmitWorkWithUsApplication() {
   const { actor } = useActor();

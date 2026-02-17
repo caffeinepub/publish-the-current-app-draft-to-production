@@ -1,10 +1,20 @@
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { XCircle, ShoppingBag, ArrowLeft } from 'lucide-react';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useSearch } from '@tanstack/react-router';
+import { clearCheckoutContext } from '../utils/stripeCheckoutContext';
 
 export default function PaymentFailurePage() {
   const navigate = useNavigate();
+  const search = useSearch({ strict: false }) as { reason?: string };
+
+  useEffect(() => {
+    // Clear any pending checkout context
+    clearCheckoutContext();
+  }, []);
+
+  const reason = search.reason || 'Your payment could not be processed or was cancelled.';
 
   return (
     <div className="container py-16 flex items-center justify-center min-h-[80vh]">
@@ -15,7 +25,7 @@ export default function PaymentFailurePage() {
           </div>
           <CardTitle className="text-2xl">Payment Failed</CardTitle>
           <CardDescription>
-            Your payment could not be processed or was cancelled.
+            {reason}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

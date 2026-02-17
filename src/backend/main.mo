@@ -14,10 +14,8 @@ import OutCall "http-outcalls/outcall";
 import MixinStorage "blob-storage/Mixin";
 import Token "token";
 import Runtime "mo:core/Runtime";
-import Migration "migration";
 
 // Use data migration (stateful actor)
-(with migration = Migration.run)
 actor {
   include MixinStorage();
 

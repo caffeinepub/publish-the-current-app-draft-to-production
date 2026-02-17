@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Minus, Plus, Trash2, CreditCard, AlertCircle, Coins, LogIn } from 'lucide-react';
+import { Minus, Plus, Trash2, AlertCircle, Coins, LogIn } from 'lucide-react';
 import { useSpendTokens, useGetCallerUserProfile, useGetStripePublicConfig, useIsCallerAdmin, useSavePurchaseOrder } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { toast } from 'sonner';
@@ -43,6 +43,12 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   const isAuthenticated = !!identity;
   const total = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
   const tokenBalance = userProfile?.tokenBalance ? Number(userProfile.tokenBalance) : 0;
+  
+  // Apply token discount (5% per token, max 100%)
+  const maxDiscountPercent = Math.min(tokenBalance * 5, 100);
+  const discountAmount = Math.floor(total * (maxDiscountPercent / 100));
+  const finalTotal = Math.max(total - discountAmount, 0);
+  
   const totalInTokens = Math.ceil(total / 100);
   const hasEnoughTokens = tokenBalance >= totalInTokens;
   const bonusTokens = Math.ceil(total / 100 * 0.05); // 5% bonus
@@ -147,7 +153,7 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   };
 
   const handleCardCheckoutSuccess = () => {
-    onOpenChange(false);
+    // Don't close drawer or clear cart here - redirect will happen
   };
 
   const handleCardCheckoutError = (error: string) => {
@@ -229,6 +235,12 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                   <span>Total:</span>
                   <span>${(total / 100).toFixed(2)}</span>
                 </div>
+                {maxDiscountPercent > 0 && (
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Token discount ({maxDiscountPercent}%):</span>
+                    <span>-${(discountAmount / 100).toFixed(2)}</span>
+                  </div>
+                )}
                 <p className="text-sm text-muted-foreground">
                   ≈ {totalInTokens} tokens
                 </p>
@@ -262,7 +274,7 @@ export default function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                   </Alert>
                 ) : (
                   <StripeCardCheckoutForm
-                    total={total}
+                    total={finalTotal}
                     bonusTokens={bonusTokens}
                     onSuccess={handleCardCheckoutSuccess}
                     onError={handleCardCheckoutError}

@@ -1,117 +1,120 @@
 {
   "kind": "build_request",
-  "title": "Restore admin payment settings with Stripe test/live keys, mode toggle, and backend persistence",
+  "title": "Stripe card payment at cart checkout with post-success order creation",
+  "projectName": "Card Checkout",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Restore the Admin > Payments > Payment Settings UI so it visibly shows configurable options (not an empty section), including inputs for Stripe Test Secret Key and Stripe Live Secret Key plus a Test/Live mode toggle, and a clear Save/Update action.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "payment settings does not show any options",
-          "1 admin, 2 stripe key test live mode, configuration.",
-          "1 yes 2 yes 3 restored"
-        ]
-      },
-      "acceptanceCriteria": [
-        "When an admin opens the Payments tab, they can immediately find and interact with payment settings without needing hidden/undiscoverable actions.",
-        "The UI includes fields labeled in English for: Stripe Test Secret Key, Stripe Live Secret Key, and a Test/Live mode toggle.",
-        "A Save/Update action is present and enabled/disabled appropriately (e.g., during save).",
-        "User-facing validation messages are in English (e.g., missing key)."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Implement backend persistence for the Stripe payment settings by storing: test secret key, live secret key, allowed countries (if still supported), and the active mode (test|live) in the backend canister, and enforce admin-only updates and admin-only reads of secrets.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "2 yes",
-          "stripe key test live mode, configuration."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Only admins can update Stripe payment settings; non-admin callers receive an authorization error.",
-        "Only admins can read back the Stripe configuration that includes secret key material.",
-        "Stripe settings persist across canister upgrades (i.e., stored in stable state).",
-        "The stored configuration includes an explicit active mode value (test or live)."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Update the backend Stripe integration so checkout/session creation uses the active Stripe mode and corresponding secret key automatically, and update the frontend checkout availability logic to reflect whether the currently selected mode is configured.",
+      "text": "Enable Stripe card payment checkout from the Store cart by creating a Stripe Checkout Session and redirecting the user to Stripe for payment (do not treat a local form submit as payment success).",
       "target": "both",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "Should these settings be saved in the backend canister so the checkout uses them automatically?",
-          "2 yes"
+          "strip payment with card at checkout"
         ]
       },
       "acceptanceCriteria": [
-        "If mode is set to Test, Stripe session creation uses the Test secret key; if mode is Live, it uses the Live secret key.",
-        "If the active mode’s key is missing, checkout is treated as not configured and the UI shows card payments as unavailable.",
-        "Existing token checkout continues to work unchanged.",
-        "Admin-facing error messaging remains informative; non-admins see a generic failure message as currently implemented."
+        "From the cart drawer, selecting “Card Payment” initiates a Stripe Checkout Session creation via the backend and redirects the browser to Stripe Checkout.",
+        "The card payment path does not call the existing order creation logic as a substitute for payment processing.",
+        "If Stripe is not configured for the active mode, the UI shows an error state and does not attempt to start checkout."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Create and store the order only after Stripe payment is confirmed as successful, using the Stripe session status as the source of truth.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-2",
+          "msg-3"
+        ],
+        "quotes": [
+          "and try again, order after payment is successfull on stripe",
+          "1 yes 2 yes"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A Stripe-based order is not persisted as completed before the Stripe session is verified as paid/successful.",
+        "On the payment success return route, the frontend reads the Stripe session identifier from the URL and calls the backend to verify session status with Stripe.",
+        "Only after successful verification, the backend persists the order and marks it as completed; failed/canceled/unpaid sessions do not create a completed order.",
+        "The payment failure route is shown when Stripe verification fails or indicates non-success status."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Fix the current “Card Payment” flow so it no longer calls savePurchaseOrder directly on submit; instead it must collect buyer details, start Stripe checkout, and defer order creation until payment success verification completes.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-2"
+        ],
+        "quotes": [
+          "strip payment with card at checkout",
+          "order after payment is successfull on stripe"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Submitting the card checkout form does not clear the cart immediately and does not show “Order placed successfully!” until after Stripe success verification completes.",
+        "Buyer details entered for card checkout are preserved across the Stripe redirect and are available when creating the order after payment success (e.g., stored in session/local storage or passed safely in the flow).",
+        "After payment success verification completes and the order is created, the cart is cleared and a success toast/confirmation is shown."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Add/adjust React Query hooks and frontend types to support the restored Stripe payment settings (test key, live key, active mode, and any existing fields such as allowed countries), and ensure the admin Payment Settings UI reads current settings and saves updates successfully.",
-      "target": "frontend",
+      "text": "Restore and ensure persistence of Stripe settings (test secret key, live secret key, and active mode) in the backend canister, and ensure the Admin > Payments settings UI correctly loads the existing configuration and can update it.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4",
+          "msg-5"
         ],
         "quotes": [
-          "stripe key test live mode, configuration.",
-          "1 yes 2 yes 3 restored"
+          "also bring back stripe settings iv set up before",
+          "yes the keys"
         ]
       },
       "acceptanceCriteria": [
-        "Admin Payment Settings screen loads current Stripe settings (excluding full secret values if masking is required) and reflects the currently active mode.",
-        "Saving settings invalidates and refreshes relevant queries (e.g., configured status, admin config query), and the UI reflects the new values.",
-        "No changes are made to immutable frontend paths listed in SYSTEM_CONTEXT."
+        "Admin users can view Stripe configuration status (including last-4 masked display) and toggle active mode between Test and Live.",
+        "Admin users can save/update test and/or live secret keys; the keys persist across reloads/upgrades when state is preserved.",
+        "Non-admin users cannot read Stripe secret keys from any endpoint.",
+        "Checkout session creation always uses the secret key corresponding to the currently active mode."
       ]
     },
     {
       "id": "REQ-5",
-      "text": "If the Stripe configuration state shape changes in a way that would break existing persisted state, add a conditional migration in backend/migration.mo to map the previous Stripe configuration into the new structure with a safe default (e.g., set both test/live keys from the prior single key and default mode to test), without breaking existing order data.",
-      "target": "backend",
+      "text": "Implement token-based discount and token earning in the Stripe card checkout flow: apply the automatic token discount during checkout calculation, and award bonus tokens only after payment success.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-2",
+          "msg-3"
         ],
         "quotes": [
-          "earlier version was working",
-          "restored"
+          "1 yes 2 yes",
+          "order after payment is successfull on stripe"
         ]
       },
       "acceptanceCriteria": [
-        "On upgrade, existing deployments with prior Stripe configuration data do not trap due to decoding errors.",
-        "After migration, admin can view/save Stripe settings and checkout configuration checks work.",
-        "Existing orders and other stored data remain intact."
+        "The Stripe checkout amount reflects any automatic token-based discount rules configured for the app (as described in project state).",
+        "Bonus/earned tokens are recorded only after Stripe payment success is verified and the order is created.",
+        "The Payment Success page reflects the finalized purchase and triggers refresh of token balance/transaction history."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo.",
-    "Do not edit files under frontend immutablePaths (compose read-only UI components instead).",
-    "Use English for any user-facing text."
+    "Backend must remain a single Motoko actor in backend/main.mo; do not introduce additional backend services.",
+    "Do not edit frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
+    "Do not expose Stripe secret keys to non-admin users; only a public, non-secret Stripe config may be returned publicly.",
+    "Do not use external databases or non-Internet-Computer backend technologies."
   ],
   "nonGoals": [
-    "Implementing real card payment capture/Stripe Elements UI (this request is specifically about restoring admin settings and configuration usage).",
-    "Adding third-party authentication providers (only Internet Identity is supported).",
-    "Introducing external databases or additional backend services."
+    "Implementing third-party authentication providers (only Internet Identity is in scope).",
+    "Adding webhooks, external servers, or any off-canister backend to process Stripe events.",
+    "Supporting non-card payment methods beyond existing token payment (e.g., Apple Pay-specific flows, ACH, Klarna)."
   ],
   "imageRequirements": {
     "required": [],

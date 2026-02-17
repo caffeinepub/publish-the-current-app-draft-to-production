@@ -99,6 +99,12 @@ export default function PaymentSettingsSection() {
   const activeMode = adminConfig?.activeMode || StripeMode.test;
   const activeModeConfigured = activeMode === StripeMode.test ? hasTestKey : hasLiveKey;
 
+  // Safe last-4 masking with guards
+  const maskKey = (key: string | undefined): string => {
+    if (!key || key.length < 4) return 'Not set';
+    return `••••••••${key.slice(-4)}`;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -119,10 +125,10 @@ export default function PaymentSettingsSection() {
                   Active mode: <span className="font-medium">{activeMode === StripeMode.test ? 'Test' : 'Live'}</span>
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Test key: {hasTestKey ? `••••••••${adminConfig.testSecretKey.slice(-4)}` : 'Not set'}
+                  Test key: {maskKey(hasTestKey ? adminConfig?.testSecretKey : undefined)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Live key: {hasLiveKey ? `••••••••${adminConfig.liveSecretKey.slice(-4)}` : 'Not set'}
+                  Live key: {maskKey(hasLiveKey ? adminConfig?.liveSecretKey : undefined)}
                 </p>
               </div>
             </AlertDescription>

@@ -1,14 +1,14 @@
 # Specification
 
 ## Summary
-**Goal:** Restore and persist admin Stripe payment settings (test/live keys and active mode) so checkout automatically uses the configured mode and key.
+**Goal:** Enable proper Stripe card checkout from the cart, creating orders only after Stripe confirms successful payment, while restoring persistent Stripe admin settings and integrating token discount/earn logic.
 
 **Planned changes:**
-- Restore the Admin > Payments > Payment Settings UI to show Stripe Test Secret Key, Stripe Live Secret Key, a Test/Live mode toggle, and a Save/Update action with English validation and saving states.
-- Add backend canister persistence for Stripe settings (test key, live key, active mode, and any existing fields such as allowed countries), with stable storage across upgrades.
-- Enforce admin-only access: only admins can update settings and only admins can read secret key material back.
-- Update Stripe session/checkout creation to automatically use the active mode’s secret key; treat card checkout as unavailable when the active mode is not configured (token checkout unchanged).
-- Add/adjust React Query hooks and frontend types to load current settings, save updates, and invalidate/refresh relevant queries after saving.
-- If the persisted Stripe configuration shape changed, add a safe backend migration to map prior configuration into the new structure without breaking existing stored data.
+- Update the cart “Card Payment” option to create a Stripe Checkout Session via the backend and redirect the user to Stripe Checkout (instead of treating a local form submit as payment success).
+- Add success/cancel (failure) return handling: on success, read the Stripe session id from the URL and call the backend to verify session status with Stripe; show a failure route/state for canceled/failed/unpaid verification results.
+- Defer order persistence until after successful Stripe session verification; only then create/mark the order completed, clear the cart, and show success confirmation.
+- Preserve buyer-entered details across the Stripe redirect so they can be used when creating the order after payment success.
+- Restore backend persistence for Stripe settings (test key, live key, active mode) and ensure Admin > Payments loads current config, masks key display, and updates settings; prevent non-admin access to secret keys.
+- Apply automatic token-based discounts when calculating the Stripe checkout amount, and award bonus/earned tokens only after payment success verification and order creation; refresh token balance/history on the success page.
 
-**User-visible outcome:** Admins can configure Stripe payment settings (test/live keys and active mode) from the Payments tab and save them; card checkout availability and Stripe session creation reflect the active mode’s configuration automatically.
+**User-visible outcome:** Shoppers can choose “Card Payment” in the cart, complete payment on Stripe, and only see an order created/confirmed after Stripe reports success; admins can view and update Stripe Test/Live keys and active mode, and token discounts/earnings correctly apply only after successful payment.

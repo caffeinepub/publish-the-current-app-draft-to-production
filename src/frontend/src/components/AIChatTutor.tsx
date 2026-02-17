@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
-import { useGetChatHistory, useSendChatMessage, useSendAIChatResponse } from '../hooks/useQueries';
+import { useGetChatHistory, useSendChatMessage } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { toast } from 'sonner';
 
@@ -17,7 +17,6 @@ export default function AIChatTutor() {
   
   const { data: chatHistory = [], refetch } = useGetChatHistory();
   const sendMessage = useSendChatMessage();
-  const sendAIResponse = useSendAIChatResponse();
 
   const isAuthenticated = !!identity;
 
@@ -48,8 +47,8 @@ export default function AIChatTutor() {
       // Simulate delay for realistic chat experience
       await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
 
-      // Send AI response
-      await sendAIResponse.mutateAsync(aiResponse);
+      // Send AI response as a regular message
+      await sendMessage.mutateAsync(aiResponse);
       await refetch();
       setIsTyping(false);
     } catch (error) {

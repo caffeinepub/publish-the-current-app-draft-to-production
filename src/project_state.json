@@ -1,36 +1,55 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Implement Stripe card payments at store cart checkout using Stripe Checkout redirect, with automatic token-based discounts and order creation after successful payment; restore prior Stripe API key settings.",
   "architectural_notes": [
-    "Admin payment settings must persist Stripe test/live keys and selected mode in the backend canister; checkout reads these settings automatically."
+    "Use Stripe Checkout (hosted redirect) for card payments.",
+    "Apply token-based discount automatically at checkout (5% per token) with tokens stored on customer account; prevent total from going below zero.",
+    "Persist/create order only after Stripe confirms payment success (webhook or post-checkout verification).",
+    "Store and reuse Stripe API keys/settings from prior configuration securely (environment/secret storage)."
   ],
   "known_issues": [
-    "Admin payment settings page shows no options (Stripe keys/mode) though it worked in an earlier version; needs restoration."
+    "AI build/generation repeatedly failing to implement Stripe checkout flow; user reports it worked in earlier versions."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-restore-the-admin-payments-payment-settings-ui-so-it-visibly-shows-configurable-options-not-an-empty-section-including-inputs-for-stripe-test-secret-key-and-stripe-live-secret-key-plus-a-test-live-mode-toggle-and-a-clear-save-update-action",
-      "title": "Restore the Admin > Payments > Payment Settings UI so it visibly shows configurable options (not an empty section), including inputs for Stripe Test Secret Key and Stripe Live Secret Key plus a Test/Live mode toggle, and a clear Save/Update action.",
+      "id": "feature-enable-stripe-card-payment-checkout-from-the-store-cart-by-creating-a-stripe-checkout-session-and-redirecting-the-user-to-stripe-for-payment-do-not-treat-a-local-form-submit-as-payment-success",
+      "title": "Enable Stripe card payment checkout from the Store cart by creating a Stripe Checkout Session and redirecting the user to Stripe for payment (do not treat a local form submit as payment success).",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-the-backend-stripe-integration-so-checkout-session-creation-uses-the-active-stripe-mode-and-corresponding-secret-key-automatically-and-update-the-frontend-checkout-availability-logic-to-reflect-whether-the-currently-selected-mode-is-configured",
-      "title": "Update the backend Stripe integration so checkout/session creation uses the active Stripe mode and corresponding secret key automatically, and update the frontend checkout availability logic to reflect whether the currently selected mode is configured.",
+      "id": "feature-create-and-store-the-order-only-after-stripe-payment-is-confirmed-as-successful-using-the-stripe-session-status-as-the-source-of-truth",
+      "title": "Create and store the order only after Stripe payment is confirmed as successful, using the Stripe session status as the source of truth.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-current-card-payment-flow-so-it-no-longer-calls-savepurchaseorder-directly-on-submit-instead-it-must-collect-buyer-details-start-stripe-checkout-and-defer-order-creation-until-payment-success-verification-completes",
+      "title": "Fix the current “Card Payment” flow so it no longer calls savePurchaseOrder directly on submit; instead it must collect buyer details, start Stripe checkout, and defer order creation until payment success verification completes.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-adjust-react-query-hooks-and-frontend-types-to-support-the-restored-stripe-payment-settings-test-key-live-key-active-mode-and-any-existing-fields-such-as-allowed-countries-and-ensure-the-admin-payment-settings-ui-reads-current-settings-and-saves-updates-successfully",
-      "title": "Add/adjust React Query hooks and frontend types to support the restored Stripe payment settings (test key, live key, active mode, and any existing fields such as allowed countries), and ensure the admin Payment Settings UI reads current settings and saves updates successfully.",
+      "id": "feature-restore-and-ensure-persistence-of-stripe-settings-test-secret-key-live-secret-key-and-active-mode-in-the-backend-canister-and-ensure-the-admin-payments-settings-ui-correctly-loads-the-existing-configuration-and-can-update-it",
+      "title": "Restore and ensure persistence of Stripe settings (test secret key, live secret key, and active mode) in the backend canister, and ensure the Admin > Payments settings UI correctly loads the existing configuration and can update it.",
       "reqIds": [
         "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-token-based-discount-and-token-earning-in-the-stripe-card-checkout-flow-apply-the-automatic-token-discount-during-checkout-calculation-and-award-bonus-tokens-only-after-payment-success",
+      "title": "Implement token-based discount and token earning in the Stripe card checkout flow: apply the automatic token discount during checkout calculation, and award bonus tokens only after payment success.",
+      "reqIds": [
+        "REQ-5"
       ],
       "version": 1
     }
@@ -38,28 +57,24 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Restore admin payment settings: Stripe test key + live key fields, test/live mode toggle, and persist settings in backend canister for checkout usage",
+      "summary": "Stripe Checkout (redirect) card payment for store cart checkout; create/store order only after Stripe payment success",
       "reqIds": [],
-      "status": "in_progress"
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Token rewards and automatic token-based discount at checkout (5% per token; tokens earned 1 at signup + 1 per item purchased)",
+      "reqIds": [],
+      "status": "pending"
     },
     {
       "id": "AR-3",
-      "summary": "Implement backend persistence for the Stripe payment settings by storing: test secret key, live secret key, allowed countries (if still supported), and the active mode (test|live) in the backend canister, and enforce admin-only updates and admin-only reads of secrets.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-6",
-      "summary": "If the Stripe configuration state shape changes in a way that would break existing persisted state, add a conditional migration in backend/migration.mo to map the previous Stripe configuration into the new structure with a safe default (e.g., set both test/live keys from the prior single key and default mode to test), without breaking existing order data.",
-      "reqIds": [
-        "REQ-5"
-      ],
+      "summary": "Restore previously configured Stripe settings/API keys",
+      "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Restore admin payment settings with Stripe test/live keys, mode toggle, and backend persistence",
+  "projectName": "Card Checkout",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }
