@@ -4,9 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useListPosts, useIsCallerAdmin, useGetPageSettings } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { Play, Upload, Loader2, Users, Briefcase } from 'lucide-react';
+import { Play, Upload, Loader2, Users } from 'lucide-react';
 import ShareRecordingDialog from '../components/ShareRecordingDialog';
-import WorkWithUsDialog from '../components/WorkWithUsDialog';
 import type { CommunityPost } from '../types';
 
 export default function CommunityPage() {
@@ -15,7 +14,6 @@ export default function CommunityPage() {
   const { identity } = useInternetIdentity();
   const { data: pageSettings } = useGetPageSettings();
   const [showShareDialog, setShowShareDialog] = useState(false);
-  const [showWorkWithUsDialog, setShowWorkWithUsDialog] = useState(false);
 
   const isAuthenticated = !!identity;
 
@@ -48,18 +46,12 @@ export default function CommunityPage() {
             <Users className="h-5 w-5 text-muted-foreground" />
             <span className="text-muted-foreground">{posts.length} recordings shared</span>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setShowWorkWithUsDialog(true)} variant="outline" className="gap-2">
-              <Briefcase className="h-4 w-4" />
-              Work with us
+          {isAuthenticated && (
+            <Button onClick={() => setShowShareDialog(true)} className="gap-2">
+              <Upload className="h-4 w-4" />
+              Share Recording
             </Button>
-            {isAuthenticated && (
-              <Button onClick={() => setShowShareDialog(true)} className="gap-2">
-                <Upload className="h-4 w-4" />
-                Share Recording
-              </Button>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Posts Grid */}
@@ -113,7 +105,6 @@ export default function CommunityPage() {
       </div>
 
       <ShareRecordingDialog open={showShareDialog} onOpenChange={setShowShareDialog} />
-      <WorkWithUsDialog open={showWorkWithUsDialog} onOpenChange={setShowWorkWithUsDialog} />
     </div>
   );
 }

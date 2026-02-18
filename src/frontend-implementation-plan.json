@@ -1,137 +1,63 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Stripe card checkout with verified success order creation",
+  "title": "OC Club - Remove AI assistance UI and Community Work With Us button",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Start Stripe Checkout from cart (create session via backend and redirect), with clear error state when Stripe is not configured.",
+      "summary": "Remove the global AI chat tutor UI so the floating widget/button is never rendered or accessible.",
       "acceptanceCriteria": [
-        "From the cart drawer, selecting “Card Payment” initiates a Stripe Checkout Session creation via the backend and redirects the browser to Stripe Checkout.",
-        "The card payment path does not call the existing order creation logic as a substitute for payment processing.",
-        "If Stripe is not configured for the active mode, the UI shows an error state and does not attempt to start checkout."
+        "No AI chat floating button/widget appears for any user state (authenticated or not).",
+        "The app builds successfully with no unused-import/type errors after removing the AI chat tutor UI wiring.",
+        "No routes/pages render AI chat tutor UI components."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Update Stripe checkout hook to (1) JSON-parse the backend createCheckoutSession result into a {id,url} shape, (2) validate non-empty url, and (3) expose a typed hook used by the cart checkout flow. Use the selected stripe component’s frontend guidance for session parsing/redirect behavior; verify the component's usage instructions before implementing."
+          "description": "Remove the AIChatTutor import and stop rendering the global AI chat tutor component so no floating widget/button can appear."
         },
         {
-          "path": "frontend/src/components/checkout/StripeCardCheckoutForm.tsx",
-          "operation": "modify",
-          "description": "Replace the current submit behavior (which directly calls savePurchaseOrder) with: collect buyer details + cart snapshot, call the createCheckoutSession hook, and redirect using window.location.href to the returned Stripe Checkout url (never router navigation). Use the selected stripe component capability for Stripe Checkout session initiation; verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/CartDrawer.tsx",
-          "operation": "modify",
-          "description": "Ensure the Card Payment tab only renders/activates Stripe checkout when the active Stripe mode is configured (using existing getStripePublicConfig-based availability logic). When unavailable, keep the existing error state and ensure no checkout attempt occurs."
+          "path": "frontend/src/components/AIChatTutor.tsx",
+          "operation": "delete",
+          "description": "Delete the AIChatTutor component implementation to ensure it cannot be rendered or reintroduced via accidental imports."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "On Stripe return, verify the session status before creating a completed order; show failure route for non-success.",
+      "summary": "Remove AI assistance/guidance UI from the learning/tutorial experience and update AI-promotional wording to non-AI copy.",
       "acceptanceCriteria": [
-        "A Stripe-based order is not persisted as completed before the Stripe session is verified as paid/successful.",
-        "On the payment success return route, the frontend reads the Stripe session identifier from the URL and calls the backend to verify session status with Stripe.",
-        "Only after successful verification, the backend persists the order and marks it as completed; failed/canceled/unpaid sessions do not create a completed order.",
-        "The payment failure route is shown when Stripe verification fails or indicates non-success status."
+        "No pages or dialogs show AI guidance/feedback panels or AI enable/disable controls.",
+        "Any user-facing copy that explicitly advertises AI guidance on the Learning area is updated to non-AI wording (English).",
+        "The app builds successfully with no references to removed AI guidance components."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/pages/LearningPage.tsx",
           "operation": "modify",
-          "description": "Add a Stripe session status helper hook (query or mutation) that calls getStripeSessionStatus(sessionId) and returns the typed StripeSessionStatus variant for use on the success return page. Use the selected stripe component capability for status verification; verify the component's usage instructions before implementing."
+          "description": "Update Learning page fallback subtitle copy to remove explicit AI wording (e.g., replace the AI-powered guidance phrasing with non-AI tutorial wording)."
         },
         {
-          "path": "frontend/src/pages/PaymentSuccessPage.tsx",
-          "operation": "modify",
-          "description": "Change PaymentSuccessPage to: (1) read Stripe session identifier from the URL, (2) call backend session-status verification, and (3) only after verification indicates completion, proceed to create the order and then show confirmation UI. If verification fails or is non-success, navigate to /payment-failure (optionally carrying a safe error reason). Use the selected stripe component capability for the success/failure return flow; verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/PaymentFailurePage.tsx",
-          "operation": "modify",
-          "description": "Enhance PaymentFailurePage to optionally display a generic failure reason derived from non-sensitive URL/session state (no secrets), and guide the user back to retry checkout from the Store."
+          "path": "frontend/src/components/AIAssistantPanel.tsx",
+          "operation": "delete",
+          "description": "Delete the AIAssistantPanel (AI feedback/guidance panel and enable/disable control) so it cannot be rendered anywhere in the learning/tutorial experience."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Fix the card checkout form to stop calling savePurchaseOrder on submit; preserve buyer details across Stripe redirect and clear cart only after verified success.",
+      "summary": "Remove the Work with us button from the Community page and ensure its dialog cannot be opened from Community.",
       "acceptanceCriteria": [
-        "Submitting the card checkout form does not clear the cart immediately and does not show “Order placed successfully!” until after Stripe success verification completes.",
-        "Buyer details entered for card checkout are preserved across the Stripe redirect and are available when creating the order after payment success (e.g., stored in session/local storage or passed safely in the flow).",
-        "After payment success verification completes and the order is created, the cart is cleared and a success toast/confirmation is shown."
+        "The Community page no longer displays a \"Work with us\" button.",
+        "The Community page no longer imports or renders the WorkWithUsDialog, and there is no state/action to open it from Community.",
+        "Community page functionality for listing posts and sharing recordings continues to work as before."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/utils/stripeCheckoutContext.ts",
-          "operation": "create",
-          "description": "Create utilities to persist and retrieve a “pending card checkout” context in sessionStorage (buyer details + ordered products snapshot + computed totals/discount metadata). Include helpers to clear the context after completion/failure. Ensure only non-secret, non-sensitive checkout data is stored."
-        },
-        {
-          "path": "frontend/src/components/checkout/StripeCardCheckoutForm.tsx",
+          "path": "frontend/src/pages/CommunityPage.tsx",
           "operation": "modify",
-          "description": "On submit: validate buyer details, serialize and store pending checkout context (buyer + cart snapshot + totals), then start Stripe session creation and redirect. Remove any cart clearing and any success toast from this form submit path."
-        },
-        {
-          "path": "frontend/src/pages/PaymentSuccessPage.tsx",
-          "operation": "modify",
-          "description": "After Stripe verification indicates completion: load pending checkout context, call savePurchaseOrder to persist the order as card payment, then clear the cart + clear the pending context, and only then show success toast/confirmation UI. If context is missing/expired, treat as failure and route to /payment-failure."
-        },
-        {
-          "path": "frontend/src/components/CartDrawer.tsx",
-          "operation": "modify",
-          "description": "Adjust Card Payment success/error callbacks to reflect the new flow (form no longer places order locally). Ensure drawer closing is driven by redirect initiation (optional) and not by local order placement."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Ensure Admin > Payments UI correctly loads existing Stripe configuration and can update active mode and secret keys without exposing secrets to non-admins.",
-      "acceptanceCriteria": [
-        "Admin users can view Stripe configuration status (including last-4 masked display) and toggle active mode between Test and Live.",
-        "Admin users can save/update test and/or live secret keys; the keys persist across reloads/upgrades when state is preserved.",
-        "Non-admin users cannot read Stripe secret keys from any endpoint.",
-        "Checkout session creation always uses the secret key corresponding to the currently active mode."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/admin/PaymentSettingsSection.tsx",
-          "operation": "modify",
-          "description": "Harden config display and loading: ensure safe last-4 masking (guard against short/empty values), refetch configuration after saves (already) and on mount where needed, and keep inputs blank (do not prefill secrets). This UI must remain admin-only via the existing AdminPage guard."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Ensure Stripe admin config hooks invalidate/refetch relevant queries after updates (admin + public config) so the cart availability check reflects the saved active mode/keys."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Apply automatic token-based discount when preparing Stripe checkout amounts and award bonus/earned tokens only after verified payment success and order creation.",
-      "acceptanceCriteria": [
-        "The Stripe checkout amount reflects any automatic token-based discount rules configured for the app (as described in project state).",
-        "Bonus/earned tokens are recorded only after Stripe payment success is verified and the order is created.",
-        "The Payment Success page reflects the finalized purchase and triggers refresh of token balance/transaction history."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/stripeCheckoutContext.ts",
-          "operation": "modify",
-          "description": "Extend the pending checkout context to store discount breakdown (e.g., discount amount/percent and final charged total) so the success page can reflect the finalized purchase consistently after redirect."
-        },
-        {
-          "path": "frontend/src/components/CartDrawer.tsx",
-          "operation": "modify",
-          "description": "Update the Stripe card payment calculation to apply the app’s automatic token discount rule when determining the Stripe charge total and the ShoppingItem priceInCents values passed into session creation (do not alter token-payment flow). Ensure any displayed totals match the values sent for Stripe checkout."
-        },
-        {
-          "path": "frontend/src/pages/PaymentSuccessPage.tsx",
-          "operation": "modify",
-          "description": "After successful verification + order creation, invalidate/refresh token-related queries (token balance + transaction history + profile), and show a success confirmation that reflects the finalized purchase (including any applied discount and earned bonus tokens). Only show/trigger token-earning effects after the verified-success order creation completes."
+          "description": "Remove the \"Work with us\" button, remove WorkWithUsDialog import/rendering, and delete related state/action (including removing the Briefcase icon import and any now-unused variables) while keeping posts listing and ShareRecordingDialog behavior unchanged."
         }
       ]
     }

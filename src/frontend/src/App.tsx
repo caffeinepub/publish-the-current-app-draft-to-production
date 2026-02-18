@@ -16,7 +16,6 @@ import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentFailurePage from './pages/PaymentFailurePage';
 import ProfileSetupModal from './components/ProfileSetupModal';
 import LoadingScreen from './components/LoadingScreen';
-import AIChatTutor from './components/AIChatTutor';
 
 const rootRoute = createRootRoute({
   component: Layout,
@@ -120,7 +119,6 @@ export default function App() {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <RouterProvider router={router} />
       <ProfileSetupModal open={showProfileModal} onOpenChange={setShowProfileModal} />
-      <AIChatTutor />
       <Toaster />
     </ThemeProvider>
   );

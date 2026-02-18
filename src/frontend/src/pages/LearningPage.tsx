@@ -18,7 +18,7 @@ export default function LearningPage() {
 
   // Use page settings with fallbacks
   const pageTitle = pageSettings?.learning?.title || 'Learning Center';
-  const pageSubtitle = pageSettings?.learning?.subtitle || 'Master the ocarina with AI-powered guidance';
+  const pageSubtitle = pageSettings?.learning?.subtitle || 'Master the ocarina with step-by-step tutorials';
   const bannerImageUrl = pageSettings?.learning?.bannerImage?.getDirectURL() || '/assets/generated/learning-section-banner.dim_800x400.jpg';
 
   const filteredTutorials = selectedDifficulty === 'all' 

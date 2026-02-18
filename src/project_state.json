@@ -1,55 +1,32 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Implement Stripe card payments at store cart checkout using Stripe Checkout redirect, with automatic token-based discounts and order creation after successful payment; restore prior Stripe API key settings.",
-  "architectural_notes": [
-    "Use Stripe Checkout (hosted redirect) for card payments.",
-    "Apply token-based discount automatically at checkout (5% per token) with tokens stored on customer account; prevent total from going below zero.",
-    "Persist/create order only after Stripe confirms payment success (webhook or post-checkout verification).",
-    "Store and reuse Stripe API keys/settings from prior configuration securely (environment/secret storage)."
-  ],
-  "known_issues": [
-    "AI build/generation repeatedly failing to implement Stripe checkout flow; user reports it worked in earlier versions."
-  ],
-  "isFixRequest": true,
+  "summary": "Project includes a community page and AI assistance/guidance tooling; user requests removing those UI features.",
+  "architectural_notes": [],
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-enable-stripe-card-payment-checkout-from-the-store-cart-by-creating-a-stripe-checkout-session-and-redirecting-the-user-to-stripe-for-payment-do-not-treat-a-local-form-submit-as-payment-success",
-      "title": "Enable Stripe card payment checkout from the Store cart by creating a Stripe Checkout Session and redirecting the user to Stripe for payment (do not treat a local form submit as payment success).",
+      "id": "feature-remove-the-global-ai-chat-tutor-feature-from-the-app-ui-so-it-is-no-longer-rendered-or-accessible-anywhere-including-removing-the-floating-chat-button-widget",
+      "title": "Remove the global AI chat tutor feature from the app UI so it is no longer rendered or accessible anywhere (including removing the floating chat button/widget).",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-create-and-store-the-order-only-after-stripe-payment-is-confirmed-as-successful-using-the-stripe-session-status-as-the-source-of-truth",
-      "title": "Create and store the order only after Stripe payment is confirmed as successful, using the Stripe session status as the source of truth.",
+      "id": "feature-remove-the-ai-assistance-ai-guidance-tooling-ui-components-from-the-learning-tutorial-experience-including-any-panels-that-show-ai-feedback-guidance-and-any-ui-controls-that-enable-disable-ai-assistance",
+      "title": "Remove the AI assistance / AI guidance tooling UI components from the learning/tutorial experience (including any panels that show AI feedback/guidance and any UI controls that enable/disable AI assistance).",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-fix-the-current-card-payment-flow-so-it-no-longer-calls-savepurchaseorder-directly-on-submit-instead-it-must-collect-buyer-details-start-stripe-checkout-and-defer-order-creation-until-payment-success-verification-completes",
-      "title": "Fix the current “Card Payment” flow so it no longer calls savePurchaseOrder directly on submit; instead it must collect buyer details, start Stripe checkout, and defer order creation until payment success verification completes.",
+      "id": "feature-remove-the-work-with-us-button-from-the-community-page-and-ensure-the-related-dialog-cannot-be-opened-from-that-page",
+      "title": "Remove the \"Work with us\" button from the Community page and ensure the related dialog cannot be opened from that page.",
       "reqIds": [
         "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-restore-and-ensure-persistence-of-stripe-settings-test-secret-key-live-secret-key-and-active-mode-in-the-backend-canister-and-ensure-the-admin-payments-settings-ui-correctly-loads-the-existing-configuration-and-can-update-it",
-      "title": "Restore and ensure persistence of Stripe settings (test secret key, live secret key, and active mode) in the backend canister, and ensure the Admin > Payments settings UI correctly loads the existing configuration and can update it.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-token-based-discount-and-token-earning-in-the-stripe-card-checkout-flow-apply-the-automatic-token-discount-during-checkout-calculation-and-award-bonus-tokens-only-after-payment-success",
-      "title": "Implement token-based discount and token earning in the Stripe card checkout flow: apply the automatic token discount during checkout calculation, and award bonus tokens only after payment success.",
-      "reqIds": [
-        "REQ-5"
       ],
       "version": 1
     }
@@ -57,24 +34,18 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Stripe Checkout (redirect) card payment for store cart checkout; create/store order only after Stripe payment success",
+      "summary": "Remove AI assistance and AI guidance tool from the app",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Token rewards and automatic token-based discount at checkout (5% per token; tokens earned 1 at signup + 1 per item purchased)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Restore previously configured Stripe settings/API keys",
+      "summary": "Remove the \"Work with us\" button from the Community page",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Card Checkout",
+  "projectName": "OC Club",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

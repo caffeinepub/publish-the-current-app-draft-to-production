@@ -1,14 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Enable proper Stripe card checkout from the cart, creating orders only after Stripe confirms successful payment, while restoring persistent Stripe admin settings and integrating token discount/earn logic.
+**Goal:** Remove all AI assistance/guidance UI from OC Club and remove the “Work with us” entry point from the Community page.
 
 **Planned changes:**
-- Update the cart “Card Payment” option to create a Stripe Checkout Session via the backend and redirect the user to Stripe Checkout (instead of treating a local form submit as payment success).
-- Add success/cancel (failure) return handling: on success, read the Stripe session id from the URL and call the backend to verify session status with Stripe; show a failure route/state for canceled/failed/unpaid verification results.
-- Defer order persistence until after successful Stripe session verification; only then create/mark the order completed, clear the cart, and show success confirmation.
-- Preserve buyer-entered details across the Stripe redirect so they can be used when creating the order after payment success.
-- Restore backend persistence for Stripe settings (test key, live key, active mode) and ensure Admin > Payments loads current config, masks key display, and updates settings; prevent non-admin access to secret keys.
-- Apply automatic token-based discounts when calculating the Stripe checkout amount, and award bonus/earned tokens only after payment success verification and order creation; refresh token balance/history on the success page.
+- Remove the global AI chat tutor UI so it is not rendered or accessible anywhere (including the floating chat button/widget) and ensure no routes/pages render AI tutor components.
+- Remove AI assistance/guidance UI from the learning/tutorial experience (AI feedback/guidance panels and any enable/disable controls) and update any Learning-area copy that advertises AI guidance to non-AI English wording.
+- Remove the “Work with us” button from the Community page and remove any related dialog wiring so it cannot be opened from Community, while keeping existing Community post/recording functionality unchanged.
 
-**User-visible outcome:** Shoppers can choose “Card Payment” in the cart, complete payment on Stripe, and only see an order created/confirmed after Stripe reports success; admins can view and update Stripe Test/Live keys and active mode, and token discounts/earnings correctly apply only after successful payment.
+**User-visible outcome:** The app has no AI chat tutor or AI guidance controls/panels anywhere, and the Community page no longer shows (or can open) the “Work with us” dialog.

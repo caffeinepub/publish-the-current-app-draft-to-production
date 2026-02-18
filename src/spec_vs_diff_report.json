@@ -1,51 +1,18 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T00:48:02.472Z",
-  "summary": "Frontend adds a Stripe Checkout redirect flow from the cart, persists buyer/cart context across the redirect, and introduces success/failure pages that verify Stripe session status before creating an order. Admin payments UI is updated to load/save Stripe settings. Backend changes are present but truncated, so key security/persistence requirements around Stripe secret keys and mode-based key usage cannot be fully verified from the provided diff summary.",
-  "missing_requirements": [
-    {
-      "id": "REQ-4",
-      "requirement": "Stripe settings (test/live secret keys and active mode) must persist in the backend canister across reloads/upgrades, and non-admin users must not be able to read Stripe secret keys from any endpoint; checkout session creation must use the secret key for the active mode.",
-      "reason": "The diff shows the Admin Payments UI and mentions hooks for admin/public config, but the backend implementation is truncated and does not provide explicit evidence of stable persistence across upgrades, admin-only access control for secrets, or that checkout session creation selects the active-mode secret key.",
-      "evidence": [
-        "backend/main.mo (truncated)",
-        "frontend/src/components/admin/PaymentSettingsSection.tsx",
-        "frontend/src/components/CartDrawer.tsx",
-        "frontend/src/hooks/useQueries.ts (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "requirement": "Bonus/earned tokens must be recorded only after Stripe payment success is verified and the order is created.",
-      "reason": "Frontend calculates and displays `bonusTokens` and shows a success toast, but there is no explicit evidence in the diff summary that the backend actually records/awards the bonus tokens only after verified Stripe success (this may exist in truncated backend or in savePurchaseOrder, but it is not shown).",
-      "evidence": [
-        "frontend/src/pages/PaymentSuccessPage.tsx (truncated)",
-        "backend/main.mo (truncated)"
-      ]
-    }
-  ],
-  "hallucinated_features": [
-    {
-      "description": "AI chat tutor behavior/content changes (local AI response generation and chat UI logic changes).",
-      "reason": "Not requested by any of REQ-1 through REQ-5; unrelated to Stripe checkout, order creation timing, Stripe settings persistence, or token discount/earning requirements.",
-      "evidence": [
-        "frontend/src/components/AIChatTutor.tsx"
-      ]
-    }
-  ],
-  "confidence": 0.62,
+  "generatedAt": "2026-02-18T00:51:55.187Z",
+  "summary": "Diff removes AI chat tutor wiring from the main App router/render tree, removes AI guidance/assistance UI references from the Learning page (and updates Learning copy away from AI wording), and removes the “Work with us” button/dialog wiring from the Community page per the provided summaries/snippets. No unrequested new features are evident in the provided diff summary.",
+  "missing_requirements": [],
+  "hallucinated_features": [],
+  "confidence": 0.72,
   "changed_files": [
-    "backend/main.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/App.tsx",
+    "frontend/src/components/AIAssistantPanel.tsx",
     "frontend/src/components/AIChatTutor.tsx",
-    "frontend/src/components/CartDrawer.tsx",
-    "frontend/src/components/admin/PaymentSettingsSection.tsx",
-    "frontend/src/components/checkout/StripeCardCheckoutForm.tsx",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/PaymentFailurePage.tsx",
-    "frontend/src/pages/PaymentSuccessPage.tsx",
-    "frontend/src/utils/stripeCheckoutContext.ts",
+    "frontend/src/pages/CommunityPage.tsx",
+    "frontend/src/pages/LearningPage.tsx",
     "project_state.json"
   ]
 }

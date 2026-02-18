@@ -2,12 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-enable-stripe-card-payment-checkout-from-the-store-cart-by-creating-a-stripe-checkout-session-and-redirecting-the-user-to-stripe-for-payment-do-not-treat-a-local-form-submit-as-payment-success",
-      "featureTitle": "Enable Stripe card payment checkout from the Store cart by creating a Stripe Checkout Session and redirecting the user to Stripe for payment (do not treat a local form submit as payment success).",
+      "featureId": "feature-remove-the-global-ai-chat-tutor-feature-from-the-app-ui-so-it-is-no-longer-rendered-or-accessible-anywhere-including-removing-the-floating-chat-button-widget",
+      "featureTitle": "Remove the global AI chat tutor feature from the app UI so it is no longer rendered or accessible anywhere (including removing the floating chat button/widget).",
       "files": [
-        "frontend/src/components/CartDrawer.tsx",
-        "frontend/src/components/checkout/StripeCardCheckoutForm.tsx",
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/App.tsx",
+        "frontend/src/components/AIChatTutor.tsx"
       ],
       "components": [
         "authorization@3.0.0",
@@ -26,12 +25,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-create-and-store-the-order-only-after-stripe-payment-is-confirmed-as-successful-using-the-stripe-session-status-as-the-source-of-truth",
-      "featureTitle": "Create and store the order only after Stripe payment is confirmed as successful, using the Stripe session status as the source of truth.",
+      "featureId": "feature-remove-the-ai-assistance-ai-guidance-tooling-ui-components-from-the-learning-tutorial-experience-including-any-panels-that-show-ai-feedback-guidance-and-any-ui-controls-that-enable-disable-ai-assistance",
+      "featureTitle": "Remove the AI assistance / AI guidance tooling UI components from the learning/tutorial experience (including any panels that show AI feedback/guidance and any UI controls that enable/disable AI assistance).",
       "files": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/PaymentFailurePage.tsx",
-        "frontend/src/pages/PaymentSuccessPage.tsx"
+        "frontend/src/components/AIAssistantPanel.tsx",
+        "frontend/src/pages/LearningPage.tsx"
       ],
       "components": [
         "authorization@3.0.0",
@@ -50,13 +48,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-fix-the-current-card-payment-flow-so-it-no-longer-calls-savepurchaseorder-directly-on-submit-instead-it-must-collect-buyer-details-start-stripe-checkout-and-defer-order-creation-until-payment-success-verification-completes",
-      "featureTitle": "Fix the current “Card Payment” flow so it no longer calls savePurchaseOrder directly on submit; instead it must collect buyer details, start Stripe checkout, and defer order creation until payment success verification completes.",
+      "featureId": "feature-remove-the-work-with-us-button-from-the-community-page-and-ensure-the-related-dialog-cannot-be-opened-from-that-page",
+      "featureTitle": "Remove the \"Work with us\" button from the Community page and ensure the related dialog cannot be opened from that page.",
       "files": [
-        "frontend/src/components/CartDrawer.tsx",
-        "frontend/src/components/checkout/StripeCardCheckoutForm.tsx",
-        "frontend/src/pages/PaymentSuccessPage.tsx",
-        "frontend/src/utils/stripeCheckoutContext.ts"
+        "frontend/src/pages/CommunityPage.tsx"
       ],
       "components": [
         "authorization@3.0.0",
@@ -71,53 +66,6 @@
       ],
       "testIds": [
         "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-restore-and-ensure-persistence-of-stripe-settings-test-secret-key-live-secret-key-and-active-mode-in-the-backend-canister-and-ensure-the-admin-payments-settings-ui-correctly-loads-the-existing-configuration-and-can-update-it",
-      "featureTitle": "Restore and ensure persistence of Stripe settings (test secret key, live secret key, and active mode) in the backend canister, and ensure the Admin > Payments settings UI correctly loads the existing configuration and can update it.",
-      "files": [
-        "frontend/src/components/admin/PaymentSettingsSection.tsx",
-        "frontend/src/hooks/useQueries.ts"
-      ],
-      "components": [
-        "authorization@3.0.0",
-        "blob-storage@4.0.0",
-        "stripe@3.0.0",
-        "http-outcalls@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-implement-token-based-discount-and-token-earning-in-the-stripe-card-checkout-flow-apply-the-automatic-token-discount-during-checkout-calculation-and-award-bonus-tokens-only-after-payment-success",
-      "featureTitle": "Implement token-based discount and token earning in the Stripe card checkout flow: apply the automatic token discount during checkout calculation, and award bonus tokens only after payment success.",
-      "files": [
-        "frontend/src/components/CartDrawer.tsx",
-        "frontend/src/pages/PaymentSuccessPage.tsx",
-        "frontend/src/utils/stripeCheckoutContext.ts"
-      ],
-      "components": [
-        "authorization@3.0.0",
-        "blob-storage@4.0.0",
-        "stripe@3.0.0",
-        "http-outcalls@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
       ],
       "confidence": "high"
     }
